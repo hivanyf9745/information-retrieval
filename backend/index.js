@@ -20,8 +20,8 @@ app.get("/", (req, res) => {
 app.get("/ir", (req, res) => {
   let spawn = require("child_process").spawn;
 
-  let stdout = '';
-  let data = '';
+  let stdout = "";
+  let data = "";
   let process = spawn(
     "/Library/Frameworks/Python.framework/Versions/3.10/bin/python3",
     ["Assignment4.py", req.query.inputQuery]
@@ -30,24 +30,11 @@ app.get("/ir", (req, res) => {
     console.log("stderr ---->:", data.toString());
   });
   process.stdout.on("data", data => {
-    stdout += data.toString()
+    stdout += data.toString();
   });
-  process.stdout.on('end',(data) => {
-    res.send(stdout)
-});
-  // process.stdout.on('end', data => {
-  //   try{
-  //     let artifact_array = JSON.parse(stdout);
-  //     log.debug(artifact_array);
-  //     if (!artifact_array) {
-  //       res.status(200).send({status: 'success', message: artifact_array})
-  //     } else {
-  //       res.status(400).send({ status: 'error', message: 'In else :: somthing went wrong' })
-  //     }
-  //   }catch(error){
-  //     res.status(400).send({ status: 'error', message: 'somthing went wrong' });
-  //   }
-  // })
+  process.stdout.on("end", data => {
+    res.send(stdout);
+  });
 });
 
 app.post("/query", (req, res) => {

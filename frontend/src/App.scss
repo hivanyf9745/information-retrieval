@@ -1,3 +1,27 @@
 .search-bar-container {
   margin-top: 200px;
 }
+
+.results-container {
+  width: 900px;
+  margin: 30px auto;
+  position: relative;
+
+  .option-flex {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .expanded-results {
+    background: #fff;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}
+
+.results-container-null {
+  width: 900px;
+  margin: 20px auto;
+}
