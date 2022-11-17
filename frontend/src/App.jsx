@@ -29,10 +29,10 @@ const App = () => {
       await axios
         .post(`${baseURL}/query`, {
           title: "Hello World",
-          body: query,
+          body: `{"query": "${query}", "type": "${language}"}`,
         })
         .then(response => {
-          console.log("response data: ----->", response.data);
+          console.log("user query: ----->", response.data);
         });
     } catch (error) {
       console.log(error);

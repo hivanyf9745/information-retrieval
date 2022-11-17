@@ -28,7 +28,6 @@ app.get("/ir", (req, res) => {
     console.log("stderr ---->:", data.toString());
   });
   process.stdout.on("data", data => {
-    console.log("data ----> ", data);
     console.log("data to string --->", data.toString());
     res.send(data.toString());
   });
@@ -37,6 +36,7 @@ app.get("/ir", (req, res) => {
 app.post("/query", (req, res) => {
   queryValue = req.body.body;
   res.redirect(`/ir?inputQuery=${queryValue}`);
+  // res.send(queryValue)
 });
 
 const PORT = process.env.PORT || 8080;
