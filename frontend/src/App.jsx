@@ -6,10 +6,10 @@ import IconButton from "@mui/material/IconButton";
 import SearchIcon from "@mui/icons-material/Search";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import Button from "@mui/material/Button";
 import { useState } from "react";
 
 import "./App.scss";
+import AllResults from "./components/allResults.component";
 
 const App = () => {
   const baseURL = "http://localhost:8080";
@@ -18,8 +18,6 @@ const App = () => {
   const [query, setQuery] = useState("");
 
   const [results, setResults] = useState("{}");
-
-  const [expand, setExpand] = useState("none");
 
   const handleChange = (event, newLanguage) => {
     setLanguage(newLanguage);
@@ -38,7 +36,6 @@ const App = () => {
         })
         .then(response => {
           setResults(response.data);
-          setExpand("none");
         });
     } catch (error) {
       console.log(error);
@@ -84,44 +81,7 @@ const App = () => {
       </Paper>
 
       {results !== "{}" ? (
-        <div className='results-container'>
-          <div className='option-flex'>
-            <div>Translated Result: {results.translatedResult}</div>
-            <div>
-              <Button
-                variant='contained'
-                onClick={() => {
-                  expand === "none" ? setExpand("block") : setExpand("none");
-                }}>
-                Expand Query
-              </Button>
-            </div>
-          </div>
-          <div className='returned-docs'>
-            {results.returnedDocs.map((ele, index) => {
-              return (
-                <div key={index} className='results-container'>
-                  <div>{ele.title}</div>
-                  <div>{ele.authors}</div>
-                  <div>{ele.releaseDate}</div>
-                  <div>{ele.abstract}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div className='expanded-results' style={{ display: expand }}>
-            {results.expandedDocs.map((ele, index) => {
-              return (
-                <div key={index} className='results-container'>
-                  <div>{ele.title}</div>
-                  <div>{ele.authors}</div>
-                  <div>{ele.releaseDate}</div>
-                  <div>{ele.abstract}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <AllResults results={results} />
       ) : (
         <div className='results-container-null'>
           <h1>Please put in some queries</h1>
