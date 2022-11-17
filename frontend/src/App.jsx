@@ -16,6 +16,8 @@ const App = () => {
   const [language, setLanguage] = useState("EN");
   const [query, setQuery] = useState("");
 
+  const[results, setResults] = useState('{}')
+
   const handleChange = (event, newLanguage) => {
     setLanguage(newLanguage);
   };
@@ -32,12 +34,14 @@ const App = () => {
           body: `{"query": "${query}", "type": "${language}"}`,
         })
         .then(response => {
-          console.log("user query: ----->", response.data);
+          setResults(response.data)
         });
     } catch (error) {
       console.log(error);
     }
   };
+
+  console.log(results);
 
   return (
     <div className='search-bar-container'>

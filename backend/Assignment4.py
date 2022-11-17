@@ -22,8 +22,8 @@ index_count = 0
 import pyterrier as pt
 pt.init()
 
-inputQuery = '{"query": "la dépression", "type": "FR"}'
-
+inputQuery = sys.argv[1]
+# '{"query": "emotion", "type": "EN"}'
 def prepare_index_path(indexName):
   global index_count
   index_count = index_count + 1
@@ -117,6 +117,11 @@ def frenchInputStemmed(argText):
 
   return query_fc_FS
 
+def addRelevantDocs(docssofar, newdocstoadd, qid, query):
+  for doctoadd in newdocstoadd:
+    docssofar.append({"qid":str(qid), "query":query, "docno":doctoadd})
+  return docssofar
+
 def printOutcome(inputQuery):
 
   # read the csv data from both file sources
@@ -141,6 +146,9 @@ def printOutcome(inputQuery):
   french_data['Abstract_FS'] = french_data['Abstract_processed'].apply(stem_sentences_FS)
   # remove the french tones
   french_data['simplified'] = french_data.apply(lambda row: unidecode.unidecode(row.Abstract_FS), axis=1)
+
+  frames = [eng_data, french_data]
+  combined_data = pd.concat(frames)
 
   loaded_df_PS = load_dataframe(eng_data, 'Abstract_PS')
   indexref_PS = build_myindex(loaded_df_PS)
@@ -178,16 +186,124 @@ def printOutcome(inputQuery):
     initial_results_eng = rankedRetrieval_eng.search(finalQuery_origin)
     initial_results_fr = rankedRetrieval_fr.search(finalQuery_translated)
 
+    initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
+    initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
+
     piplineQE_eng = rankedRetrieval_eng >> bo1_eng >> rankedRetrieval_eng
     piplineQE_fr = rankedRetrieval_fr >> bo1_fr >> rankedRetrieval_fr
 
     resultsAfterPseudoRelevance_eng = piplineQE_eng.search(finalQuery_origin)
     resultsAfterPseudoRelevance_fr = piplineQE_fr.search(finalQuery_translated)
 
-    print('initial eng results: ---->', initial_results_eng)
-    print('initial french results: ---->', initial_results_fr)
-    print('expanded eng results: ---->', resultsAfterPseudoRelevance_eng)
-    print('expanded french results: ---->', resultsAfterPseudoRelevance_fr)
+    resultsAfterPseudoRelevance_eng['language'] = ['english'] * len(resultsAfterPseudoRelevance_eng['rank'])
+    resultsAfterPseudoRelevance_fr['language'] = ['french'] * len(resultsAfterPseudoRelevance_fr['rank'])
+
+    initial_frames = [initial_results_eng, initial_results_fr]
+    combined_initial_results = pd.concat(initial_frames)
+
+    combined_initial_results['ranking-score'] = combined_initial_results['score'].rank(ascending = 0)
+    combined_initial_results = combined_initial_results.set_index('ranking-score')
+    combined_initial_results = combined_initial_results.sort_index()
+
+    combined_pseudo_frames = [resultsAfterPseudoRelevance_eng, resultsAfterPseudoRelevance_fr]
+    combined_pseudo_results = pd.concat(combined_pseudo_frames)
+
+    combined_pseudo_results['ranking-score'] = combined_pseudo_results['score'].rank(ascending = 0)
+    combined_pseudo_results = combined_pseudo_results.set_index('ranking-score')
+    combined_pseudo_results = combined_pseudo_results.sort_index()
+
+    initial_docno = []
+    combined_pseudo_docno = []
+    returned_data = {
+      "translatedResult": translated_result,
+      "queryLanguage": "english",
+      "returnedDocs": [],
+      "expandedDocs": []
+    }
+
+    for row in combined_initial_results.itertuples():
+      if row.language == 'french':
+        initial_docno.append({"docno": int(row.docno), "language": "french"})
+      elif row.language == 'english':
+        initial_docno.append({"docno": int(row.docno), "language": "english"})
+
+    for row in combined_pseudo_results.itertuples():
+      if row.language == 'french':
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french"})
+      elif row.language == 'english':
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english"})
+
+
+    for item in initial_docno:
+      for row in combined_data.itertuples():
+        if (int(item["docno"]) + 1) == int(row.Sno) and item["language"] == row.Language:
+          returned_data['returnedDocs'].append({
+            "docid": row.Sno,
+            "docLanguage": row.Language,
+            "title": row.Title,
+            "keywords": row.Keywords.split('; '),
+            "authors": row.Authors,
+            "releaseDate": row.ReleaseDate,
+            "subjectHeadings": row.SubjectHeading.split(', '),
+            "abstract": row.Abstract
+          })
+          
+    for item in combined_pseudo_docno:
+      for row in combined_data.itertuples():
+        if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+          returned_data['expandedDocs'].append({
+            "docid": row.Sno,
+            "docLanguage": row.Language,
+            "title": row.Title,
+            "keywords": row.Keywords.split('; '),
+            "authors": row.Authors,
+            "releaseDate": row.ReleaseDate,
+            "subjectHeadings": row.SubjectHeading.split(', '),
+            "abstract": row.Abstract
+          })
+
+    print(json.dumps(returned_data))
+
+    # relevantDocsFlaggedByUser_eng = ['2', '0', '3', '8']
+    # relevantDocsFlaggedByUser_fr = ['2', '9', '19']
+
+    # allRelevantDocsByQuery_eng = []
+    # qid_eng = initial_results_eng.iloc[0]['qid']
+    # query_eng = initial_results_eng.iloc[0]['query']
+
+    # allRelevantDocsByQuery_eng = addRelevantDocs(allRelevantDocsByQuery_eng, relevantDocsFlaggedByUser_eng, qid_eng, query_eng)
+
+    # relevantDF_eng = pd.DataFrame(allRelevantDocsByQuery_eng)
+    # print('relevantDF_eng: ---->', relevantDF_eng)
+
+    # allRelevantDocsByQuery_fr = []
+    # qid_fr = initial_results_fr.iloc[0]['qid']
+    # query_fr = initial_results_fr.iloc[0]['query']
+
+    # allRelevantDocsByQuery_fr = addRelevantDocs(allRelevantDocsByQuery_fr, relevantDocsFlaggedByUser_fr, qid_fr, query_fr)
+
+    # relevantDF_fr = pd.DataFrame(allRelevantDocsByQuery_fr)
+    # print('relevantDF_fr: ---->', relevantDF_fr)
+
+    # bo1User_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_eng))
+    # pipe_eng = bo1User_eng >> rankedRetrieval_eng
+    # newresults_eng = pipe_eng.transform(relevantDF_eng)
+    # newquery_eng = newresults_eng.iloc[0]['query']
+
+    # print('newquery_eng: ---->', newquery_eng)
+    # print('newresults_eng: ---->', newresults_eng)
+
+
+    # bo1User_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_fr))
+    # pipe_fr = bo1User_fr >> rankedRetrieval_fr
+    # newresults_fr = pipe_fr.transform(relevantDF_fr)
+    # newquery_fr = newresults_fr.iloc[0]['query']
+    # print('newquery_fr: ---->', newquery_fr)
+    # print('newresults_fr: ---->', newresults_fr)
+
+
+    # print('expanded eng results: ---->', resultsAfterPseudoRelevance_eng)
+    # print('expanded french results: ---->', resultsAfterPseudoRelevance_fr)
     # print(translated_result)
   elif processed_query['type'] == 'FR':
     translated_result = GoogleTranslator(source='french', target='english').translate(processed_query['query'])
@@ -210,17 +326,82 @@ def printOutcome(inputQuery):
     initial_results_eng = rankedRetrieval_eng.search(finalQuery_translated)
     initial_results_fr = rankedRetrieval_fr.search(finalQuery_origin)
 
+    initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
+    initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
+
     piplineQE_eng = rankedRetrieval_eng >> bo1_eng >> rankedRetrieval_eng
     piplineQE_fr = rankedRetrieval_fr >> bo1_fr >> rankedRetrieval_fr
 
     resultsAfterPseudoRelevance_eng = piplineQE_eng.search(finalQuery_translated)
     resultsAfterPseudoRelevance_fr = piplineQE_fr.search(finalQuery_origin)
 
-    print('initial eng results: ---->', initial_results_eng)
-    print('initial french results: ---->', initial_results_fr)
-    print('expanded eng results: ---->', resultsAfterPseudoRelevance_eng)
-    print('expanded french results: ---->', resultsAfterPseudoRelevance_fr)
-    # print(translated_result)
+    resultsAfterPseudoRelevance_eng['language'] = ['english'] * len(resultsAfterPseudoRelevance_eng['rank'])
+    resultsAfterPseudoRelevance_fr['language'] = ['french'] * len(resultsAfterPseudoRelevance_fr['rank'])
+
+    initial_frames = [initial_results_eng, initial_results_fr]
+    combined_initial_results = pd.concat(initial_frames)
+
+    combined_initial_results['ranking-score'] = combined_initial_results['score'].rank(ascending = 0)
+    combined_initial_results = combined_initial_results.set_index('ranking-score')
+    combined_initial_results = combined_initial_results.sort_index()
+
+    combined_pseudo_frames = [resultsAfterPseudoRelevance_eng, resultsAfterPseudoRelevance_fr]
+    combined_pseudo_results = pd.concat(combined_pseudo_frames)
+
+    combined_pseudo_results['ranking-score'] = combined_pseudo_results['score'].rank(ascending = 0)
+    combined_pseudo_results = combined_pseudo_results.set_index('ranking-score')
+    combined_pseudo_results = combined_pseudo_results.sort_index()
+
+    initial_docno = []
+    combined_pseudo_docno = []
+    returned_data = {
+      "translatedResult": translated_result,
+      "queryLanguage": "english",
+      "returnedDocs": [],
+      "expandedDocs": []
+    }
+
+    for row in combined_initial_results.itertuples():
+      if row.language == 'french':
+        initial_docno.append({"docno": int(row.docno), "language": "french"})
+      elif row.language == 'english':
+        initial_docno.append({"docno": int(row.docno), "language": "english"})
+
+    for row in combined_pseudo_results.itertuples():
+      if row.language == 'french':
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french"})
+      elif row.language == 'english':
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english"})
+
+    for item in initial_docno:
+      for row in combined_data.itertuples():
+        if (int(item["docno"]) + 1) == int(row.Sno) and item["language"] == row.Language:
+          returned_data['returnedDocs'].append({
+            "docid": row.Sno,
+            "docLanguage": row.Language,
+            "title": row.Title,
+            "keywords": row.Keywords.split('; '),
+            "authors": row.Authors,
+            "releaseDate": row.ReleaseDate,
+            "subjectHeadings": row.SubjectHeading.split(', '),
+            "abstract": row.Abstract
+          })
+          
+    for item in combined_pseudo_docno:
+      for row in combined_data.itertuples():
+        if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+          returned_data['expandedDocs'].append({
+            "docid": row.Sno,
+            "docLanguage": row.Language,
+            "title": row.Title,
+            "keywords": row.Keywords.split('; '),
+            "authors": row.Authors,
+            "releaseDate": row.ReleaseDate,
+            "subjectHeadings": row.SubjectHeading.split(', '),
+            "abstract": row.Abstract
+          })
+
+    print(json.dumps(returned_data))
 
   sys.stdout.flush()
 
