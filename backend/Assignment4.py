@@ -30,19 +30,14 @@ def prepare_index_path(indexName):
   index_path = indexName + str(index_count)
   
   if os.path.exists(index_path) & os.path.isdir(index_path):
-    # print('Deleting index directory' + index_path)
     files = os.listdir(index_path)
     for f in files:
       fname =index_path + '/' + f
       os.remove(fname)
     os.rmdir(index_path)
-    # print("Successfully deleted index directory " + index_path)
   elif os.path.exists(index_path) & (not os.path.isdir(index_path)):
     os.rmove(index_path)
-    # print("Index path was actually a file, so removed it " + index_path)
-  # else:
-  #   print("Index path doesn't exist, so no need to clear it: " + index_path)
-  
+
   return index_path
 
 def stem_sentences_PS(sentence):
@@ -122,8 +117,17 @@ def addRelevantDocs(docssofar, newdocstoadd, qid, query):
     docssofar.append({"qid":str(qid), "query":query, "docno":doctoadd})
   return docssofar
 
-def printOutcome(inputQuery):
+def normalizeDataFrames(df, colname):
+  colNeedNormaltoList = df[colname].to_list()
 
+  maxColValue = max(colNeedNormaltoList)
+
+  for idx, row in df.iterrows():
+    df.loc[idx, colname] = (df.loc[idx, colname] - 1) / maxColValue
+  
+  return df
+
+def printOutcome(inputQuery):
   # read the csv data from both file sources
   eng_data = pd.read_csv('eng.csv')
   french_data = pd.read_csv('french.csv')
@@ -189,6 +193,10 @@ def printOutcome(inputQuery):
     initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
     initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
 
+    # Normalized the initial dataframe
+    initial_results_eng = normalizeDataFrames(initial_results_eng, 'score')
+    initial_results_fr = normalizeDataFrames(initial_results_fr, 'score')
+
     piplineQE_eng = rankedRetrieval_eng >> bo1_eng >> rankedRetrieval_eng
     piplineQE_fr = rankedRetrieval_fr >> bo1_fr >> rankedRetrieval_fr
 
@@ -197,6 +205,10 @@ def printOutcome(inputQuery):
 
     resultsAfterPseudoRelevance_eng['language'] = ['english'] * len(resultsAfterPseudoRelevance_eng['rank'])
     resultsAfterPseudoRelevance_fr['language'] = ['french'] * len(resultsAfterPseudoRelevance_fr['rank'])
+
+    # Normalized the pseudo dataframe
+    resultsAfterPseudoRelevance_eng = normalizeDataFrames(resultsAfterPseudoRelevance_eng, 'score')
+    resultsAfterPseudoRelevance_fr = normalizeDataFrames(resultsAfterPseudoRelevance_fr, 'score')
 
     initial_frames = [initial_results_eng, initial_results_fr]
     combined_initial_results = pd.concat(initial_frames)
