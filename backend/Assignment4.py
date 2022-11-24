@@ -1,3 +1,5 @@
+# Import all the essential libraries
+# If you haven't installed all the python libraries listed below, please run the pip3 install <libraryName> in your terminal
 import subprocess
 import sys
 import os
@@ -13,7 +15,7 @@ from nltk.stem.snowball import FrenchStemmer
 import unidecode
 from deep_translator import GoogleTranslator
 
-
+# If you haven't installed all the following nltk packages to your local environment, please uncomment to make sure the first time the code run, it will work
 # nltk.download('stopwords')
 # nltk.download('punkt')
 # nltk.download('wordnet')
@@ -25,9 +27,11 @@ fs = FrenchStemmer()
 doDebug = True
 index_count = 0
 
+#Start the pyterrier 
 import pyterrier as pt
 pt.init()
 
+#preprocessing for query expansion
 pos_tag_map = {
   'NN': [ wn.NOUN ],
   'JJ': [ wn.ADJ, wn.ADJ_SAT ],
@@ -35,8 +39,9 @@ pos_tag_map = {
   'VB': [ wn.VERB ]
 }
 
+#This line is crucial so that the frontend will send the query to nodejs, which invoke the python function with inputQuery's value as the parameter
+# So the input value should look like this'{"query": "emotion", "type": "EN", "userFeedback": ["4, english", "5, french"]}'
 inputQuery = sys.argv[1]
-# '{"query": "emotion", "type": "EN", "userFeedback": ["4, english", "5, french"]}'
 def prepare_index_path(indexName):
   global index_count
   index_count = index_count + 1
@@ -243,10 +248,12 @@ def normalizeDataFrames(df, colname):
 #   hypernyms = underscore_replacer(hypernyms)
 #   results = {**synonyms, **hypernyms}
 #   return results
+#################################################
 
 
-
-
+#################################################
+#//Main function
+#################################################
 def printOutcome(inputQuery):
   # read the csv data from both file sources
   eng_data = pd.read_csv('eng.csv')
@@ -271,33 +278,52 @@ def printOutcome(inputQuery):
   # remove the french tones
   french_data['simplified'] = french_data.apply(lambda row: unidecode.unidecode(row.Abstract_FS), axis=1)
 
+  ##Test trial to concat both dataframes together
   frames = [eng_data, french_data]
   combined_data = pd.concat(frames)
 
+  # You will load the dataframes and come up with the stemmed index.
+  # Noticed that for the french one we eliminate the tones for words
   loaded_df_PS = load_dataframe(eng_data, 'Abstract_PS')
   indexref_PS = build_myindex(loaded_df_PS)
 
   loaded_df_FS = load_dataframe(french_data, 'simplified')
   indexref_FS = build_myindex(loaded_df_FS)
 
+  # This line might be redundant but let's go with the flow
   query = inputQuery
-  # print('inputQuery: ---->', inputQuery)
 
+  # inputQuery is returned in a string format, the following code should change the inputQuery to json (python dictionary)
   processed_query = json.loads(query)
-  
+
+  # There are three keys in the processed_query: 
+  # "query" as in the original query (put in either french or english)
+  # "type" as in the query language type, so it's either EN or FR in this context
+  # "userfeedback" as in the userbased feendback after the first BM25 results are presented and people filter out the relevant ones
+
+  # Here we need to pre-set the variable for translating the query: eng --> french, or french --> eng
   original_query = processed_query['query']
   translated_result = ''
   finalQuery_origin = ''
   finalQuery_translated = ''
 
+  # This is to pre-set for the all the BatchRetrieve process for specific query search
   rankedRetrieval_eng = pt.BatchRetrieve(indexref_PS, wmodel='BM25')
   rankedRetrieval_fr = pt.BatchRetrieve(indexref_FS, wmodel='BM25')
 
+  # Set up the peudoRelevance pipeline
   bo1_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=2)
   bo1_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=2)
 
+  # We separate the scenario into two groups: when the input query is in English || when the input query is in French
+
+
   if processed_query['type'] == 'EN':
+
+    # We are using the Google Translator python package to translate english to french
     translated_result = GoogleTranslator(source='english', target='french').translate(processed_query['query'])
+
+    # punctuation removal is always expected. Following that are lowercase, and split the string into list so we can remove the tones and stopwords if the translated target is french
     translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
     translated_result_lower = translated_result_punct.lower()
     translated_result_split = translated_result_lower.split()
@@ -305,22 +331,31 @@ def printOutcome(inputQuery):
     translated_result_final = ' '.join(translated_result_stop)
     translated_result_simple = unidecode.unidecode(translated_result_final)
 
+    # After the procecssing for stopwords, punctuation, and tone removal (if applicable), we now want to stem the query since the index are for stemmed results as well
+
+    #### The method for English stemmer is Porter, and French stemmer is Snowball
     finalQuery_origin = porterInputStemmed(original_query)
     finalQuery_translated = frenchInputStemmed(translated_result_simple)
 
+    # Now that we've done with the preprocessing, let's dump the query into the batch retrieval index
     initial_results_eng = rankedRetrieval_eng.search(finalQuery_origin)
     initial_results_fr = rankedRetrieval_fr.search(finalQuery_translated)
 
+    # However, since we need to merge the English and French results together and see if the ranking works, first we need to add a new column specifying the returned docs language type
     initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
     initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
 
-    # Normalized the initial dataframe
+    # Normalized the initial dataframe's score
     initial_results_eng = normalizeDataFrames(initial_results_eng, 'score')
     initial_results_fr = normalizeDataFrames(initial_results_fr, 'score')
 
+
+    #################################3
+    # This is just repeating the process of specifying doc's language and normalize their score, but for the PseudoRelevance one
     piplineQE_eng = rankedRetrieval_eng >> bo1_eng >> rankedRetrieval_eng
     piplineQE_fr = rankedRetrieval_fr >> bo1_fr >> rankedRetrieval_fr
 
+    # So this is the results returned after the PseudoRelevance processing
     resultsAfterPseudoRelevance_eng = piplineQE_eng.search(finalQuery_origin)
     resultsAfterPseudoRelevance_fr = piplineQE_fr.search(finalQuery_translated)
 
@@ -331,6 +366,8 @@ def printOutcome(inputQuery):
     resultsAfterPseudoRelevance_eng = normalizeDataFrames(resultsAfterPseudoRelevance_eng, 'score')
     resultsAfterPseudoRelevance_fr = normalizeDataFrames(resultsAfterPseudoRelevance_fr, 'score')
 
+    # Now we need to combine these two dataframes to start ranking their normalized scores
+    ## This is for both initial results (representing BM25), and pseudo relevance feedback
     initial_frames = [initial_results_eng, initial_results_fr]
     combined_initial_results = pd.concat(initial_frames)
 
@@ -345,6 +382,12 @@ def printOutcome(inputQuery):
     combined_pseudo_results = combined_pseudo_results.set_index('ranking-score')
     combined_pseudo_results = combined_pseudo_results.sort_index()
 
+    #### So we have the pseudoRelevance, we have the initial results, we are depending on the initial results to start user based one
+    ### Therefore, we need to start preparing the data we want to return to the frontend
+    ### The final returned data should look like 
+    #######
+    # '{"trasnlatedResult": "emotion", "queryLanguage": "english", "returnedDocs": [resultsreturned by initial results], "expandedDocs": [results coming from pseudoRelevance], "userbasedDocs": [results representing userfeedback]}'
+    ###
     initial_docno = []
     combined_pseudo_docno = []
     combined_userbased_docno = []
@@ -397,6 +440,15 @@ def printOutcome(inputQuery):
             "abstract": row.Abstract
           })
 
+    # Since we've done with the initial display, now we will expect user to give us some feedbacks about which documents they do find relevant
+
+    # The steps are pretty much the same
+    # 1) get the user feedback
+    # 2) run the feedback in both french and eng index
+    # 3) make the pipeline to loop through the docs user find relevant
+    # 4) normalize and combine the english and french results after userfeedback analysis processing
+    # 5) rank the combined userfeedback results
+    # 6) return the data in json format to the frontend
     relevantDocsFlaggedByUser_eng = []
     relevantDocsFlaggedByUser_fr = []
     if processed_query['userFeedback'] == []:
@@ -465,6 +517,8 @@ def printOutcome(inputQuery):
 
       print(json.dumps(returned_data))
 
+
+################ Now you just have to perform the same process as query is in French!!!!
   elif processed_query['type'] == 'FR':
     translated_result = GoogleTranslator(source='french', target='english').translate(processed_query['query'])
     translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
