@@ -1,25 +1,11 @@
 import axios from "axios";
 import Button from "@mui/material/Button";
 import Rating from "@mui/material/Rating";
-import Box from "@mui/material/Box";
-import StarIcon from "@mui/icons-material/Star";
 import { useState } from "react";
 import Checkbox from "@mui/material/Checkbox";
 import "./allResults.styles.scss";
 
 const label = { inputProps: { "aria-label": "Checkbox demo" } };
-
-const labels = {
-  1: "Useless",
-  2: "Poor",
-  3: "Ok",
-  4: "Good",
-  5: "Excellent",
-};
-
-function getLabelText(value) {
-  return `${value} Star${value !== 1 ? "s" : ""}, ${labels[value]}`;
-}
 
 const AllResults = ({ results, query, language }) => {
   const baseURL = "http://localhost:8080";
@@ -28,19 +14,8 @@ const AllResults = ({ results, query, language }) => {
   const [displayUser, setDisplayUser] = useState("none");
   const [checked, setChecked] = useState([]);
 
-  // For user ratings
-  const [value, setValue] = useState(
-    new Array(results.returnedDocs.length).fill(0)
-  );
-  const [hover, setHover] = useState(-1);
-
-  const [feedback, setFeedback] = useState([]);
-
   const [response, setResponse] = useState("{}");
-
-  console.log("rating feedback: ---->", feedback);
   console.log("box checked: ---->", checked);
-  console.log("value: ---->", value);
   console.log("user-based response: ---->", response);
 
   const checkHandler = e => {
@@ -106,44 +81,7 @@ const AllResults = ({ results, query, language }) => {
               </div>
               <div className='result-ratings'>
                 <div>Your Rating?</div>
-                <Box
-                  sx={{
-                    width: 200,
-                    display: "flex",
-                    alignItems: "center",
-                  }}>
-                  <Rating
-                    name='hover-feedback'
-                    value={value[index]}
-                    precision={1}
-                    getLabelText={getLabelText}
-                    onChange={event => {
-                      const newFeedback = [
-                        ...feedback,
-                        JSON.stringify({
-                          docid: ele.docid,
-                          docLanguage: ele.docLanguage,
-                          docRating: parseInt(event.target.value),
-                        }),
-                      ];
-                      let newValueArr = [...value];
-                      newValueArr[index] = parseInt(event.target.value);
-                      setFeedback(newFeedback);
-                      setValue(newValueArr);
-                    }}
-                    onChangeActive={(event, newHover) => {
-                      setHover(newHover);
-                    }}
-                    emptyIcon={
-                      <StarIcon style={{ opacity: 0.55 }} fontSize='inherit' />
-                    }
-                  />
-                  {value !== null && (
-                    <Box sx={{ ml: 2 }}>
-                      {labels[hover !== -1 ? hover : value]}
-                    </Box>
-                  )}
-                </Box>
+                <Rating name='half-rating' defaultValue={0} precision={1} />
               </div>
             </div>
           );
@@ -162,16 +100,30 @@ const AllResults = ({ results, query, language }) => {
             }}>
             Fold User-Based Feedback
           </Button>
-          {response.userbasedDocs.map((ele, index) => {
-            return (
-              <div key={index} className='results-container'>
-                <div>{ele.title}</div>
-                <div>{ele.authors}</div>
-                <div>{ele.releaseDate}</div>
-                <div>{ele.abstract}</div>
-              </div>
-            );
-          })}
+          <div className='userBased-details'>
+            {response !== "{}"
+              ? response.userbasedDocs.map((ele, index) => {
+                  return (
+                    <div key={index} className='results-details'>
+                      <div className='results-container'>
+                        <div>{ele.title}</div>
+                        <div>{ele.authors}</div>
+                        <div>{ele.releaseDate}</div>
+                        <div>{ele.abstract}</div>
+                      </div>
+                      <div className='userresult-ratings'>
+                        <div>Your Rating?</div>
+                        <Rating
+                          name='half-rating'
+                          defaultValue={0}
+                          precision={1}
+                        />
+                      </div>
+                    </div>
+                  );
+                })
+              : console.log("no response from users' feedback yet")}
+          </div>
         </div>
       </div>
       <div className='expanded-results' style={{ display: expand }}>
@@ -182,16 +134,24 @@ const AllResults = ({ results, query, language }) => {
           }}>
           Fold Expand Query
         </Button>
-        {results.expandedDocs.map((ele, index) => {
-          return (
-            <div key={index} className='results-container'>
-              <div>{ele.title}</div>
-              <div>{ele.authors}</div>
-              <div>{ele.releaseDate}</div>
-              <div>{ele.abstract}</div>
-            </div>
-          );
-        })}
+        <div className=''>
+          {results.expandedDocs.map((ele, index) => {
+            return (
+              <div key={index} className='pseudo-docs-container'>
+                <div className='results-container'>
+                  <div>{ele.title}</div>
+                  <div>{ele.authors}</div>
+                  <div>{ele.releaseDate}</div>
+                  <div>{ele.abstract}</div>
+                </div>
+                <div className='pseudoresult-ratings'>
+                  <div>Your Rating?</div>
+                  <Rating name='half-rating' defaultValue={0} precision={1} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

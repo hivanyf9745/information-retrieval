@@ -8,4 +8,28 @@
 
 .userBased-results {
   margin-top: 40px;
+
+  .userBased-details {
+    .results-details {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      align-items: start;
+
+      .userresult-ratings {
+        margin: 30px auto;
+      }
+    }
+  }
+}
+
+.pseudo-docs-container {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 30px;
+
+  .pseudoresult-ratings {
+    margin: 30px auto;
+  }
 }
