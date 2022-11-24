@@ -23,7 +23,7 @@ import pyterrier as pt
 pt.init()
 
 inputQuery = sys.argv[1]
-# '{"query": "emotion", "type": "EN"}'
+# '{"query": "emotion", "type": "EN", "userFeedback": ["4, english", "5, french"]}'
 def prepare_index_path(indexName):
   global index_count
   index_count = index_count + 1
@@ -161,6 +161,7 @@ def printOutcome(inputQuery):
   indexref_FS = build_myindex(loaded_df_FS)
 
   query = inputQuery
+  # print('inputQuery: ---->', inputQuery)
 
   processed_query = json.loads(query)
   
@@ -226,11 +227,13 @@ def printOutcome(inputQuery):
 
     initial_docno = []
     combined_pseudo_docno = []
+    combined_userbased_docno = []
     returned_data = {
       "translatedResult": translated_result,
       "queryLanguage": "english",
       "returnedDocs": [],
-      "expandedDocs": []
+      "expandedDocs": [],
+      "userbasedDocs": []
     }
 
     for row in combined_initial_results.itertuples():
@@ -274,49 +277,74 @@ def printOutcome(inputQuery):
             "abstract": row.Abstract
           })
 
-    print(json.dumps(returned_data))
+    relevantDocsFlaggedByUser_eng = []
+    relevantDocsFlaggedByUser_fr = []
+    if processed_query['userFeedback'] == []:
+      print(json.dumps(returned_data))
+    else: 
+      for feedback in processed_query['userFeedback']:
+        feedbacklst = feedback.split(', ')
+        if feedbacklst[1] == 'english':
+          relevantDocsFlaggedByUser_eng.append(feedbacklst[0])
+        elif feedbacklst[1] == 'french':
+          relevantDocsFlaggedByUser_fr.append(feedbacklst[0])
+      
+      allRelevantDocsByQuery_eng=[]
+      qid_eng = initial_results_eng.iloc[0]['qid']
+      query_eng = initial_results_eng.iloc[0]['query']
+      
+      allRelevantDocsByQuery_eng = addRelevantDocs(allRelevantDocsByQuery_eng, relevantDocsFlaggedByUser_eng, qid_eng, query_eng)
+      relevantDF_eng = pd.DataFrame(allRelevantDocsByQuery_eng)
 
-    # relevantDocsFlaggedByUser_eng = ['2', '0', '3', '8']
-    # relevantDocsFlaggedByUser_fr = ['2', '9', '19']
+      bo1User_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=10, fb_docs=len(relevantDocsFlaggedByUser_eng))
+      pipeUser_eng = bo1User_eng >> rankedRetrieval_eng
+      newresults_eng = pipeUser_eng.transform(relevantDF_eng)
 
-    # allRelevantDocsByQuery_eng = []
-    # qid_eng = initial_results_eng.iloc[0]['qid']
-    # query_eng = initial_results_eng.iloc[0]['query']
+      allRelevantDocsByQuery_fr = []
+      qid_fr = initial_results_fr.iloc[0]['qid']
+      query_fr = initial_results_fr.iloc[0]['query']
+      allRelevantDocsByQuery_fr = addRelevantDocs(allRelevantDocsByQuery_fr, relevantDocsFlaggedByUser_fr, qid_fr, query_fr)
+      relevantDF_fr = pd.DataFrame(allRelevantDocsByQuery_fr)
+      
+      bo1User_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_fr))
+      pipe_fr = bo1User_fr >> rankedRetrieval_fr
+      newresults_fr = pipe_fr.transform(relevantDF_fr)
 
-    # allRelevantDocsByQuery_eng = addRelevantDocs(allRelevantDocsByQuery_eng, relevantDocsFlaggedByUser_eng, qid_eng, query_eng)
+      newresults_eng['language'] = ['english'] * len(newresults_eng['rank'])
+      newresults_fr['language'] = ['french'] * len(newresults_fr['rank'])
 
-    # relevantDF_eng = pd.DataFrame(allRelevantDocsByQuery_eng)
-    # print('relevantDF_eng: ---->', relevantDF_eng)
+      newresults_eng = normalizeDataFrames(newresults_eng, 'score')
+      newresults_fr = normalizeDataFrames(newresults_fr, 'score')
 
-    # allRelevantDocsByQuery_fr = []
-    # qid_fr = initial_results_fr.iloc[0]['qid']
-    # query_fr = initial_results_fr.iloc[0]['query']
+      userbased_frames = [newresults_eng, newresults_fr]
+      combined_userbased_results = pd.concat(userbased_frames)
 
-    # allRelevantDocsByQuery_fr = addRelevantDocs(allRelevantDocsByQuery_fr, relevantDocsFlaggedByUser_fr, qid_fr, query_fr)
+      combined_userbased_results['ranking-score'] = combined_userbased_results['score'].rank(ascending = 0)
+      combined_userbased_results = combined_userbased_results.set_index('ranking-score')
+      combined_userbased_results = combined_userbased_results.sort_index()
 
-    # relevantDF_fr = pd.DataFrame(allRelevantDocsByQuery_fr)
-    # print('relevantDF_fr: ---->', relevantDF_fr)
+      for row in combined_userbased_results.itertuples():
+        if row.language == 'french':
+          combined_userbased_docno.append({"docno": int(row.docno), "language": "french"})
+        elif row.language == 'english':
+          combined_userbased_docno.append({"docno": int(row.docno), "language": "english"})
 
-    # bo1User_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_eng))
-    # pipe_eng = bo1User_eng >> rankedRetrieval_eng
-    # newresults_eng = pipe_eng.transform(relevantDF_eng)
-    # newquery_eng = newresults_eng.iloc[0]['query']
+      for item in combined_userbased_docno:
+        for row in combined_data.itertuples():
+          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+            returned_data['userbasedDocs'].append({
+              "docid": row.Sno,
+              "docLanguage": row.Language,
+              "title": row.Title,
+              "keywords": row.Keywords.split('; '),
+              "authors": row.Authors,
+              "releaseDate": row.ReleaseDate,
+              "subjectHeadings": row.SubjectHeading.split(', '),
+              "abstract": row.Abstract
+              })
 
-    # print('newquery_eng: ---->', newquery_eng)
-    # print('newresults_eng: ---->', newresults_eng)
+      print(json.dumps(returned_data))
 
-
-    # bo1User_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_fr))
-    # pipe_fr = bo1User_fr >> rankedRetrieval_fr
-    # newresults_fr = pipe_fr.transform(relevantDF_fr)
-    # newquery_fr = newresults_fr.iloc[0]['query']
-    # print('newquery_fr: ---->', newquery_fr)
-    # print('newresults_fr: ---->', newresults_fr)
-
-
-    # print('expanded eng results: ---->', resultsAfterPseudoRelevance_eng)
-    # print('expanded french results: ---->', resultsAfterPseudoRelevance_fr)
-    # print(translated_result)
   elif processed_query['type'] == 'FR':
     translated_result = GoogleTranslator(source='french', target='english').translate(processed_query['query'])
     translated_result_punct = re.sub('[^\w\s]+', '', translated_result)

@@ -32,7 +32,7 @@ const App = () => {
       await axios
         .post(`${baseURL}/query`, {
           title: "Hello World",
-          body: `{"query": "${query}", "type": "${language}"}`,
+          body: `{"query": "${query}", "type": "${language}", "userFeedback": []}`,
         })
         .then(response => {
           setResults(response.data);
@@ -81,7 +81,7 @@ const App = () => {
       </Paper>
 
       {results !== "{}" ? (
-        <AllResults results={results} />
+        <AllResults results={results} query={query} language={language} />
       ) : (
         <div className='results-container-null'>
           <h1>Please put in some queries</h1>

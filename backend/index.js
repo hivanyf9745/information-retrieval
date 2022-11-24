@@ -42,6 +42,10 @@ app.post("/query", (req, res) => {
   res.redirect(`/ir?inputQuery=${queryValue}`);
 });
 
+app.post("/userBased", (req, res) => {
+  res.redirect(`/ir?inputQuery=${req.body.body}`);
+});
+
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, console.log(`Server started on PORT ${PORT}`));

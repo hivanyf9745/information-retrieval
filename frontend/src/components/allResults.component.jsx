@@ -1,3 +1,4 @@
+import axios from "axios";
 import Button from "@mui/material/Button";
 import Rating from "@mui/material/Rating";
 import Box from "@mui/material/Box";
@@ -20,8 +21,11 @@ function getLabelText(value) {
   return `${value} Star${value !== 1 ? "s" : ""}, ${labels[value]}`;
 }
 
-const AllResults = ({ results }) => {
+const AllResults = ({ results, query, language }) => {
+  const baseURL = "http://localhost:8080";
+
   const [expand, setExpand] = useState("none");
+  const [displayUser, setDisplayUser] = useState("none");
   const [checked, setChecked] = useState([]);
 
   // For user ratings
@@ -32,9 +36,12 @@ const AllResults = ({ results }) => {
 
   const [feedback, setFeedback] = useState([]);
 
+  const [response, setResponse] = useState("{}");
+
   console.log("rating feedback: ---->", feedback);
   console.log("box checked: ---->", checked);
   console.log("value: ---->", value);
+  console.log("user-based response: ---->", response);
 
   const checkHandler = e => {
     if (e.target.checked && !checked.includes(e.target.value)) {
@@ -43,6 +50,25 @@ const AllResults = ({ results }) => {
     } else if (!e.target.checked && checked.includes(e.target.value)) {
       const newChecked = checked.filter(item => item !== e.target.value);
       setChecked(newChecked);
+    }
+  };
+
+  const submitUserFeedback = async () => {
+    console.log("post body format: ----> ", JSON.stringify(checked));
+    try {
+      await axios
+        .post(`${baseURL}/userBased`, {
+          title: "user-based feedback",
+          body: `{"query": "${query}", "type": "${language}", "userFeedback": ${JSON.stringify(
+            checked
+          )}}`,
+        })
+        .then(response => {
+          setResponse(response.data);
+          setDisplayUser("block");
+        });
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -65,10 +91,10 @@ const AllResults = ({ results }) => {
           return (
             <div key={index} className='docs-container'>
               <div className='result-checkbox'>
-                <div>Do you find this is relevant?</div>
+                <div>Do you find this document relevant?</div>
                 <Checkbox
                   {...label}
-                  value={`{"docid": ${ele.docid}, "docLanguage": "${ele.docLanguage}"}`}
+                  value={`${ele.docid}, ${ele.docLanguage}`}
                   onClick={checkHandler}
                 />
               </div>
@@ -88,24 +114,20 @@ const AllResults = ({ results }) => {
                   }}>
                   <Rating
                     name='hover-feedback'
-                    value={JSON.parse(value[index])}
+                    value={value[index]}
                     precision={1}
                     getLabelText={getLabelText}
-                    onChange={(event, newValue) => {
+                    onChange={event => {
                       const newFeedback = [
                         ...feedback,
                         JSON.stringify({
                           docid: ele.docid,
                           docLanguage: ele.docLanguage,
-                          docRating: event.target.value,
+                          docRating: parseInt(event.target.value),
                         }),
                       ];
                       let newValueArr = [...value];
-                      newValueArr[index] = JSON.stringify({
-                        docid: ele.docid,
-                        docLanguage: ele.docLanguage,
-                        docRating: event.target.value,
-                      });
+                      newValueArr[index] = parseInt(event.target.value);
                       setFeedback(newFeedback);
                       setValue(newValueArr);
                     }}
@@ -126,9 +148,31 @@ const AllResults = ({ results }) => {
             </div>
           );
         })}
-        <Button variant='contained' onClick={() => {}}>
+        <Button variant='contained' onClick={submitUserFeedback}>
           USER-BASED Relevance
         </Button>
+
+        <div className='userBased-results' style={{ display: displayUser }}>
+          <Button
+            variant='contained'
+            onClick={() => {
+              displayUser === "none"
+                ? setDisplayUser("block")
+                : setDisplayUser("none");
+            }}>
+            Fold User-Based Feedback
+          </Button>
+          {response.userbasedDocs.map((ele, index) => {
+            return (
+              <div key={index} className='results-container'>
+                <div>{ele.title}</div>
+                <div>{ele.authors}</div>
+                <div>{ele.releaseDate}</div>
+                <div>{ele.abstract}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
       <div className='expanded-results' style={{ display: expand }}>
         <Button
