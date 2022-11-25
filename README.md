@@ -20,4 +20,13 @@
 - We tried to comment on the python part as much as we can. Hopefully you can go with the flow 🥱
 - We constructed a google form 📝, to put in the results that we find helpful, we will have that attached at the end of this README file 🔚
 - By far, we find the PseudoRelevance when works best for medical database and it's information retrieval
+  - BTW, User-base is not working, **AT ALL**🫠🥲!!
 - Once we've decided 🤔 upon which retrieval method is the best, we will modify this project to a high fidelity interface. Please wait for our big presentation!
+
+### Special Thanks and SHOUT OUT to My team member Jay and Shivani:
+
+- Shivani: for processing the csv data into a json format 📉
+- Jay: Working on the Query Expansion and User-based Relevance 👨🏻‍🎓
+- And Nice job Ivan, you cohered all their parts together and make the dataflow between frontend and backend 🔁
+
+### THE GOOGLE FORM LINK: https://docs.google.com/forms/d/e/1FAIpQLSe_3os9tpeBsvtr5S2SmrJ6sU8yhWTX9vRHJgcYo-tQ9gX_qw/viewform
