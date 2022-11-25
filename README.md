@@ -13,4 +13,11 @@
   - **It is very slow. You have to wait for a few seconds until it gets all the results (you can observe your logs in the `backend` terminal)**
   - Please **refresh your page** everytime you want to search for a new query
   - Please select **two or more results in both French and English**, otherwise the webpage might crash
-  - We have the code for Query Expansion, but we haven't analyze it, no worries, we will bring that up first thing on next version
+  - We have the code for Query Expansion, but we haven't analyzed it. No worries, we will bring that up first thing on next version
+
+## We thought you might be overwhelmed; So here is a little heads up...
+
+- We tried to comment on the python part as much as we can. Hopefully you can go with the flow 🥱
+- We constructed a google form 📝, to put in the results that we find helpful, we will have that attached at the end of this README file 🔚
+- By far, we find the PseudoRelevance when works best for medical database and it's information retrieval
+- Once we've decided 🤔 upon which retrieval method is the best, we will modify this project to a high fidelity interface. Please wait for our big presentation!
