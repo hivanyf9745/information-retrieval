@@ -1,5 +1,5 @@
-# Import all the essential libraries
 # If you haven't installed all the python libraries listed below, please run the pip3 install <libraryName> in your terminal
+# Import all the essential libraries
 import subprocess
 import sys
 import os
@@ -252,7 +252,8 @@ def normalizeDataFrames(df, colname):
 
 
 #################################################
-#//Main function
+#// printOPutcome function will blah vblah blah.  It is run when blahahblah
+#Coded by Jay
 #################################################
 def printOutcome(inputQuery):
   # read the csv data from both file sources
@@ -362,9 +363,15 @@ def printOutcome(inputQuery):
     resultsAfterPseudoRelevance_eng['language'] = ['english'] * len(resultsAfterPseudoRelevance_eng['rank'])
     resultsAfterPseudoRelevance_fr['language'] = ['french'] * len(resultsAfterPseudoRelevance_fr['rank'])
 
+    # print('BEFORE EN: ---->', resultsAfterPseudoRelevance_eng)
+    # print('BEFORE FR: ---->', resultsAfterPseudoRelevance_fr)
+
     # Normalized the pseudo dataframe
     resultsAfterPseudoRelevance_eng = normalizeDataFrames(resultsAfterPseudoRelevance_eng, 'score')
     resultsAfterPseudoRelevance_fr = normalizeDataFrames(resultsAfterPseudoRelevance_fr, 'score')
+
+    # print('AFTER EN: ---->', resultsAfterPseudoRelevance_eng)
+    # print('AFTER FR: ---->', resultsAfterPseudoRelevance_fr)
 
     # Now we need to combine these two dataframes to start ranking their normalized scores
     ## This is for both initial results (representing BM25), and pseudo relevance feedback
