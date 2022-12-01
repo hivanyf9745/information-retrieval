@@ -6,6 +6,7 @@ import os
 import pandas as pd
 import json
 import nltk
+import numpy as np
 from nltk.corpus import wordnet as wn
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
@@ -144,110 +145,6 @@ def normalizeDataFrames(df, colname):
     df.loc[idx, colname] = (df.loc[idx, colname] - 1) / maxColValue
   
   return df
-
-# def pos_tag_converter(nltk_pos_tag):
-#   root_tag = nltk_pos_tag[0:2]
-#   try:
-#     pos_tag_map[root_tag]
-#     return pos_tag_map[root_tag]
-#   except KeyError:
-#     return ''
-
-# def get_synsets(tokens):
-#   synsets = []
-#   for token in tokens:
-#     wn_pos_tag = pos_tag_converter(token[1])
-#     if wn_pos_tag == '':
-#       continue
-#     else:
-#       synsets.append(wn.synsets(token[0], wn_pos_tag))
-#   return synsets
-
-# def get_tokens_from_synsets(synsets):
-#   tokens = {}
-#   for synset in synsets:
-#     for s in synset:
-#       if s.name() in tokens:
-#         tokens[s.name().split('.')[0]] += 1
-#       else:
-#         tokens[s.name().split('.')[0]] = 1
-#   return tokens
-
-# def get_hypernyms(synsets):
-#   hypernyms = []
-#   for synset in synsets:
-#     for s in synset:
-#       hypernyms.append(s.hypernyms())
-            
-#   return hypernyms
-
-# def get_tokens_from_hypernyms(synsets):
-#   tokens = {}
-#   for synset in synsets:
-#     for s in synsets:
-#       for ss in s:
-#         if ss.name().split('.')[0] in tokens:
-#           tokens[(ss.name().split('.')[0])] += 1
-#         else:
-#           tokens[(ss.name().split('.')[0])] = 1
-#   return tokens
-
-# def underscore_replacer(tokens):
-#   new_tokens = {}
-#   for key in tokens.keys():
-#     mod_key = re.sub(r'_', ' ', key)
-#     new_tokens[mod_key] = tokens[key]
-#   return new_tokens
-
-# def generate_tokens_eng(sentence):
-#   tokens = tokenizer(sentence)
-#   tokens = pos_tagger(tokens)
-#   tokens = stopword_treatment_eng(tokens)
-#   return tokens
-
-# def generate_tokens_fr(sentence):
-#   tokens = tokenizer(sentence)
-#   tokens = pos_tagger(tokens)
-#   tokens = stopword_treatment_fr(tokens)
-#   return tokens
-
-# def tokenizer(sentence):
-#   return word_tokenize(sentence)
-
-# def pos_tagger(tokens):
-#   return nltk.pos_tag(tokens)
-
-# def stopword_treatment_eng(tokens):
-#   stopword = stopwords.words('english')
-#   result = []
-#   for token in tokens:
-#     if token[0].lower() not in stopword:
-#       result.append(tuple([token[0].lower(), token[1]]))
-  
-#   return result
-
-# def stopword_treatment_fr(tokens):
-#   stopword = stopwords.words('french')
-#   result = []
-#   for token in tokens:
-#     if token[0].lower() not in stopword:
-#       result.append(tuple([token[0].lower(), token[1]]))
-  
-#   return result
-
-# def generate_synonymsandhypernyms(tokens):
-#   # tokens = tokenizer(sentence)
-#   # tokens = pos_tagger(tokens)
-#   # tokens = stopword_treatment(tokens)
-#   # print(tokens)
-#   synsets = get_synsets(tokens)
-#   synonyms = get_tokens_from_synsets(synsets)
-#   synonyms = underscore_replacer(synonyms)
-#   hypernyms = get_hypernyms(synsets)
-#   hypernyms = get_tokens_from_hypernyms(hypernyms)
-#   hypernyms = underscore_replacer(hypernyms)
-#   results = {**synonyms, **hypernyms}
-#   return results
 #################################################
 
 
@@ -312,7 +209,7 @@ def printOutcome(inputQuery):
   rankedRetrieval_eng = pt.BatchRetrieve(indexref_PS, wmodel='BM25')
   rankedRetrieval_fr = pt.BatchRetrieve(indexref_FS, wmodel='BM25')
 
-  # Set up the peudoRelevance pipeline
+  # Set up the peudoRelevance pipeline·
   bo1_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=2)
   bo1_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=2)
 
@@ -403,7 +300,6 @@ def printOutcome(inputQuery):
       "queryLanguage": "english",
       "returnedDocs": [],
       "expandedDocs": [],
-      "userbasedDocs": []
     }
 
     for row in combined_initial_results.itertuples():
@@ -447,82 +343,7 @@ def printOutcome(inputQuery):
             "abstract": row.Abstract
           })
 
-    # Since we've done with the initial display, now we will expect user to give us some feedbacks about which documents they do find relevant
-
-    # The steps are pretty much the same
-    # 1) get the user feedback
-    # 2) run the feedback in both french and eng index
-    # 3) make the pipeline to loop through the docs user find relevant
-    # 4) normalize and combine the english and french results after userfeedback analysis processing
-    # 5) rank the combined userfeedback results
-    # 6) return the data in json format to the frontend
-    relevantDocsFlaggedByUser_eng = []
-    relevantDocsFlaggedByUser_fr = []
-    if processed_query['userFeedback'] == []:
-      print(json.dumps(returned_data))
-    else: 
-      for feedback in processed_query['userFeedback']:
-        feedbacklst = feedback.split(', ')
-        if feedbacklst[1] == 'english':
-          relevantDocsFlaggedByUser_eng.append(feedbacklst[0])
-        elif feedbacklst[1] == 'french':
-          relevantDocsFlaggedByUser_fr.append(feedbacklst[0])
-      
-      allRelevantDocsByQuery_eng=[]
-      qid_eng = initial_results_eng.iloc[0]['qid']
-      query_eng = initial_results_eng.iloc[0]['query']
-      
-      allRelevantDocsByQuery_eng = addRelevantDocs(allRelevantDocsByQuery_eng, relevantDocsFlaggedByUser_eng, qid_eng, query_eng)
-      relevantDF_eng = pd.DataFrame(allRelevantDocsByQuery_eng)
-
-      bo1User_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=10, fb_docs=len(relevantDocsFlaggedByUser_eng))
-      pipeUser_eng = bo1User_eng >> rankedRetrieval_eng
-      newresults_eng = pipeUser_eng.transform(relevantDF_eng)
-
-      allRelevantDocsByQuery_fr = []
-      qid_fr = initial_results_fr.iloc[0]['qid']
-      query_fr = initial_results_fr.iloc[0]['query']
-      allRelevantDocsByQuery_fr = addRelevantDocs(allRelevantDocsByQuery_fr, relevantDocsFlaggedByUser_fr, qid_fr, query_fr)
-      relevantDF_fr = pd.DataFrame(allRelevantDocsByQuery_fr)
-      
-      bo1User_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_fr))
-      pipe_fr = bo1User_fr >> rankedRetrieval_fr
-      newresults_fr = pipe_fr.transform(relevantDF_fr)
-
-      newresults_eng['language'] = ['english'] * len(newresults_eng['rank'])
-      newresults_fr['language'] = ['french'] * len(newresults_fr['rank'])
-
-      newresults_eng = normalizeDataFrames(newresults_eng, 'score')
-      newresults_fr = normalizeDataFrames(newresults_fr, 'score')
-
-      userbased_frames = [newresults_eng, newresults_fr]
-      combined_userbased_results = pd.concat(userbased_frames)
-
-      combined_userbased_results['ranking-score'] = combined_userbased_results['score'].rank(ascending = 0)
-      combined_userbased_results = combined_userbased_results.set_index('ranking-score')
-      combined_userbased_results = combined_userbased_results.sort_index()
-
-      for row in combined_userbased_results.itertuples():
-        if row.language == 'french':
-          combined_userbased_docno.append({"docno": int(row.docno), "language": "french"})
-        elif row.language == 'english':
-          combined_userbased_docno.append({"docno": int(row.docno), "language": "english"})
-
-      for item in combined_userbased_docno:
-        for row in combined_data.itertuples():
-          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
-            returned_data['userbasedDocs'].append({
-              "docid": row.Sno,
-              "docLanguage": row.Language,
-              "title": row.Title,
-              "keywords": row.Keywords.split('; '),
-              "authors": row.Authors,
-              "releaseDate": row.ReleaseDate,
-              "subjectHeadings": row.SubjectHeading.split(', '),
-              "abstract": row.Abstract
-              })
-
-      print(json.dumps(returned_data))
+    print(json.dumps(returned_data))
 
 
 ################ Now you just have to perform the same process as query is in French!!!!
@@ -624,73 +445,7 @@ def printOutcome(inputQuery):
             "abstract": row.Abstract
           })
 
-    relevantDocsFlaggedByUser_eng = []
-    relevantDocsFlaggedByUser_fr = []
-    if processed_query['userFeedback'] == []:
-      print(json.dumps(returned_data))
-    else: 
-      for feedback in processed_query['userFeedback']:
-        feedbacklst = feedback.split(', ')
-        if feedbacklst[1] == 'english':
-          relevantDocsFlaggedByUser_eng.append(feedbacklst[0])
-        elif feedbacklst[1] == 'french':
-          relevantDocsFlaggedByUser_fr.append(feedbacklst[0])
-      
-      allRelevantDocsByQuery_eng=[]
-      qid_eng = initial_results_eng.iloc[0]['qid']
-      query_eng = initial_results_eng.iloc[0]['query']
-      
-      allRelevantDocsByQuery_eng = addRelevantDocs(allRelevantDocsByQuery_eng, relevantDocsFlaggedByUser_eng, qid_eng, query_eng)
-      relevantDF_eng = pd.DataFrame(allRelevantDocsByQuery_eng)
-
-      bo1User_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=10, fb_docs=len(relevantDocsFlaggedByUser_eng))
-      pipeUser_eng = bo1User_eng >> rankedRetrieval_eng
-      newresults_eng = pipeUser_eng.transform(relevantDF_eng)
-
-      allRelevantDocsByQuery_fr = []
-      qid_fr = initial_results_fr.iloc[0]['qid']
-      query_fr = initial_results_fr.iloc[0]['query']
-      allRelevantDocsByQuery_fr = addRelevantDocs(allRelevantDocsByQuery_fr, relevantDocsFlaggedByUser_fr, qid_fr, query_fr)
-      relevantDF_fr = pd.DataFrame(allRelevantDocsByQuery_fr)
-
-      bo1User_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=len(relevantDocsFlaggedByUser_fr))
-      pipe_fr = bo1User_fr >> rankedRetrieval_fr
-      newresults_fr = pipe_fr.transform(relevantDF_fr)
-
-      newresults_eng['language'] = ['english'] * len(newresults_eng['rank'])
-      newresults_fr['language'] = ['french'] * len(newresults_fr['rank'])
-
-      newresults_eng = normalizeDataFrames(newresults_eng, 'score')
-      newresults_fr = normalizeDataFrames(newresults_fr, 'score')
-
-      userbased_frames = [newresults_eng, newresults_fr]
-      combined_userbased_results = pd.concat(userbased_frames)
-
-      combined_userbased_results['ranking-score'] = combined_userbased_results['score'].rank(ascending = 0)
-      combined_userbased_results = combined_userbased_results.set_index('ranking-score')
-      combined_userbased_results = combined_userbased_results.sort_index()
-
-      for row in combined_userbased_results.itertuples():
-        if row.language == 'french':
-          combined_userbased_docno.append({"docno": int(row.docno), "language": "french"})
-        elif row.language == 'english':
-          combined_userbased_docno.append({"docno": int(row.docno), "language": "english"})
-
-      for item in combined_userbased_docno:
-        for row in combined_data.itertuples():
-          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
-            returned_data['userbasedDocs'].append({
-              "docid": row.Sno,
-              "docLanguage": row.Language,
-              "title": row.Title,
-              "keywords": row.Keywords.split('; '),
-              "authors": row.Authors,
-              "releaseDate": row.ReleaseDate,
-              "subjectHeadings": row.SubjectHeading.split(', '),
-              "abstract": row.Abstract
-              })
-
-      print(json.dumps(returned_data))
+    print(json.dumps(returned_data))
 
   sys.stdout.flush()
 

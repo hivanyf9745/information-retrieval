@@ -1,5 +1,14 @@
+.header-img {
+  height: 300px;
+  width: 100vw;
+  background-image: url("./assets/header2.svg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
 .search-bar-container {
-  margin-top: 200px;
+  margin-top: 20px;
 }
 
 .results-container {
