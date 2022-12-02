@@ -7,7 +7,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 
 import "./App.scss";
 import AllResults from "./components/allResults.component";

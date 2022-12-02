@@ -294,7 +294,6 @@ def printOutcome(inputQuery):
     ###
     initial_docno = []
     combined_pseudo_docno = []
-    combined_userbased_docno = []
     returned_data = {
       "translatedResult": translated_result,
       "queryLanguage": "english",
@@ -304,15 +303,15 @@ def printOutcome(inputQuery):
 
     for row in combined_initial_results.itertuples():
       if row.language == 'french':
-        initial_docno.append({"docno": int(row.docno), "language": "french"})
+        initial_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
       elif row.language == 'english':
-        initial_docno.append({"docno": int(row.docno), "language": "english"})
+        initial_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
 
     for row in combined_pseudo_results.itertuples():
       if row.language == 'french':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french"})
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
       elif row.language == 'english':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english"})
+        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
 
 
     for item in initial_docno:
@@ -320,6 +319,7 @@ def printOutcome(inputQuery):
         if (int(item["docno"]) + 1) == int(row.Sno) and item["language"] == row.Language:
           returned_data['returnedDocs'].append({
             "docid": row.Sno,
+            "score": item['score'],
             "docLanguage": row.Language,
             "title": row.Title,
             "keywords": row.Keywords.split('; '),
@@ -334,6 +334,7 @@ def printOutcome(inputQuery):
         if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
           returned_data['expandedDocs'].append({
             "docid": row.Sno,
+            "score": item['score'],
             "docLanguage": row.Language,
             "title": row.Title,
             "keywords": row.Keywords.split('; '),
