@@ -40,7 +40,7 @@ const App = () => {
           setResults(response.data);
         });
     } catch (error) {
-      console.log(error);
+      alert("Something went wrong!\n" + error);
     }
   };
 
@@ -118,7 +118,11 @@ const App = () => {
         </Paper>
 
         {results !== "{}" ? (
-          <AllResults results={results} onClick={() => setFocus(false)} />
+          <AllResults
+            results={results}
+            query={query}
+            onClick={() => setFocus(false)}
+          />
         ) : (
           <div
             className='results-container-null'

@@ -32,8 +32,12 @@ app.get("/ir", (req, res) => {
   process.stdout.on("data", data => {
     stdout += data.toString();
   });
-  process.stdout.on("end", data => {
-    res.send(stdout);
+  process.stdout.on("end", (err, data) => {
+    try {
+      res.send(stdout);
+    } catch {
+      res.send(err);
+    }
   });
 });
 

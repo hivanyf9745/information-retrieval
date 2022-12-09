@@ -12,7 +12,7 @@
 .results-container {
   margin-top: 30px;
   width: 75%;
-  height: 500px;
+  height: 700px;
   overflow-y: scroll;
   padding: 30px;
   border-radius: 20px;
@@ -54,7 +54,7 @@
         .result-title {
           font-size: 24px;
           font-weight: 500;
-          width: 500px;
+          width: 700px;
           height: 30px;
           overflow: hidden;
         }
@@ -69,6 +69,125 @@
           font-weight: 500;
           font-size: 14px;
         }
+      }
+    }
+  }
+}
+
+.expanded-results {
+  display: flex;
+  margin: 30px auto;
+  width: 75%;
+  height: 700px;
+  overflow-y: scroll;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  gap: 25px;
+
+  .expanded-resultList {
+    width: 50%;
+
+    .shrinked-container {
+      display: flex;
+      gap: 20px;
+      background-color: #f1f1f1;
+      border-radius: 10px;
+      margin-bottom: 20px;
+
+      .score-color-green {
+        background-color: #63dd85;
+        width: 10px;
+        border-radius: 10px 0 0 10px;
+      }
+
+      .score-color-yellow {
+        background-color: #f5b716;
+        width: 10px;
+        border-radius: 10px 0 0 10px;
+      }
+
+      .score-color-red {
+        background-color: #f46c64;
+        width: 10px;
+        border-radius: 10px 0 0 10px;
+      }
+    }
+
+    .expanded-preview {
+      padding: 10px 0;
+
+      .expanded-header {
+        display: flex;
+        margin-bottom: 15px;
+
+        .expanded-title {
+          font-size: 24px;
+          font-weight: 500;
+          width: 450px;
+          height: 30px;
+          overflow: hidden;
+          display: inline-block;
+        }
+        .addition {
+          font-size: 24px;
+          font-weight: 500;
+          vertical-align: center;
+        }
+      }
+
+      .expanded-info {
+        display: flex;
+        justify-content: space-between;
+      }
+    }
+  }
+
+  .result-page {
+    position: sticky;
+    top: 0;
+    display: flex;
+    gap: 20px;
+    background-color: #f1f1f1;
+    border-radius: 10px;
+    width: 700px;
+    overflow-y: scroll;
+
+    .score-color-green {
+      background-color: #63dd85;
+      width: 10px;
+      border-radius: 10px 0 0 10px;
+    }
+
+    .score-color-yellow {
+      background-color: #f5b716;
+      width: 10px;
+      border-radius: 10px 0 0 10px;
+    }
+
+    .score-color-red {
+      background-color: #f46c64;
+      width: 10px;
+      border-radius: 10px 0 0 10px;
+    }
+
+    .page-detail {
+      padding-top: 30px;
+      padding-right: 15px;
+      padding-left: 15px;
+      width: 95%;
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+
+      .detail-title {
+        font-size: 20px;
+        font-weight: 500;
+      }
+
+      .detail-abstract {
+        text-align: left !important;
       }
     }
   }
