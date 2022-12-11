@@ -154,335 +154,437 @@ def normalizeDataFrames(df, colname):
 #Coded by Jay
 #################################################
 def printOutcome(inputQuery):
-  # read the csv data from both file sources
-  eng_data = pd.read_csv('eng.csv')
-  french_data = pd.read_csv('french.csv')
+  try:  # read the csv data from both file sources
+    eng_data = pd.read_csv('eng.csv')
+    french_data = pd.read_csv('french.csv')
 
-  # puctuation removal and lowercase the entire text
-  eng_data['Abstract_processed'] = [re.sub('[^\w\s]+', '', s) for s in eng_data['Abstract'].tolist()]
-  french_data['Abstract_processed']=[re.sub('[^\w\s]+', '', s) for s in french_data['Abstract'].tolist()]
-  eng_data['Abstract_processed'] = eng_data['Abstract'].str.lower()
-  french_data['Abstract_processed'] = french_data['Abstract'].str.lower()
+    # puctuation removal and lowercase the entire text
+    eng_data['Abstract_processed'] = [re.sub('[^\w\s]+', '', s) for s in eng_data['Abstract'].tolist()]
+    french_data['Abstract_processed']=[re.sub('[^\w\s]+', '', s) for s in french_data['Abstract'].tolist()]
+    eng_data['Abstract_processed'] = eng_data['Abstract'].str.lower()
+    french_data['Abstract_processed'] = french_data['Abstract'].str.lower()
 
-  # stopwords removal
-  stop_eng = stopwords.words('english')
-  eng_data['Abstract_processed'] = eng_data['Abstract_processed'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop_eng)]))
+    # stopwords removal
+    stop_eng = stopwords.words('english')
+    eng_data['Abstract_processed'] = eng_data['Abstract_processed'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop_eng)]))
 
-  stop_fr = stopwords.words('french')
-  french_data['Abstract_processed'] = french_data['Abstract_processed'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop_fr)]))
+    stop_fr = stopwords.words('french')
+    french_data['Abstract_processed'] = french_data['Abstract_processed'].apply(lambda x: ' '.join([word for word in x.split() if word not in (stop_fr)]))
 
-  # apply porter stemming and snowball stemming on both english and french corpus
-  eng_data['Abstract_PS'] = eng_data['Abstract_processed'].apply(stem_sentences_PS)
-  french_data['Abstract_FS'] = french_data['Abstract_processed'].apply(stem_sentences_FS)
-  # remove the french tones
-  french_data['simplified'] = french_data.apply(lambda row: unidecode.unidecode(row.Abstract_FS), axis=1)
+    # apply porter stemming and snowball stemming on both english and french corpus
+    eng_data['Abstract_PS'] = eng_data['Abstract_processed'].apply(stem_sentences_PS)
+    french_data['Abstract_FS'] = french_data['Abstract_processed'].apply(stem_sentences_FS)
+    # remove the french tones
+    french_data['simplified'] = french_data.apply(lambda row: unidecode.unidecode(row.Abstract_FS), axis=1)
 
-  ##Test trial to concat both dataframes together
-  frames = [eng_data, french_data]
-  combined_data = pd.concat(frames)
+    ##Test trial to concat both dataframes together
+    frames = [eng_data, french_data]
+    combined_data = pd.concat(frames)
 
-  # You will load the dataframes and come up with the stemmed index.
-  # Noticed that for the french one we eliminate the tones for words
-  loaded_df_PS = load_dataframe(eng_data, 'Abstract_PS')
-  indexref_PS = build_myindex(loaded_df_PS)
+    # You will load the dataframes and come up with the stemmed index.
+    # Noticed that for the french one we eliminate the tones for words
+    loaded_df_PS = load_dataframe(eng_data, 'Abstract_PS')
+    indexref_PS = build_myindex(loaded_df_PS)
 
-  loaded_df_FS = load_dataframe(french_data, 'simplified')
-  indexref_FS = build_myindex(loaded_df_FS)
-
-
-  # This line might be redundant but let's go with the flow
-  query = inputQuery
-
-  # inputQuery is returned in a string format, the following code should change the inputQuery to json (python dictionary)
-  processed_query = json.loads(query)
-
-  # There are three keys in the processed_query: 
-  # "query" as in the original query (put in either french or english)
-  # "type" as in the query language type, so it's either EN or FR in this context
-  # "userfeedback" as in the userbased feendback after the first BM25 results are presented and people filter out the relevant ones
-
-  # Here we need to pre-set the variable for translating the query: eng --> french, or french --> eng
-  original_query = processed_query['query']
-  translated_result = ''
-  finalQuery_origin = ''
-  finalQuery_translated = ''
-
-  # This is to pre-set for the all the BatchRetrieve process for specific query search
-  rankedRetrieval_eng = pt.BatchRetrieve(indexref_PS, wmodel='BM25')
-  rankedRetrieval_fr = pt.BatchRetrieve(indexref_FS, wmodel='BM25')
-
-  # Set up the peudoRelevance pipeline·
-  bo1_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=2)
-  bo1_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=2)
-
-  # We separate the scenario into two groups: when the input query is in English || when the input query is in French
+    loaded_df_FS = load_dataframe(french_data, 'simplified')
+    indexref_FS = build_myindex(loaded_df_FS)
 
 
-  if processed_query['type'] == 'EN':
+    # This line might be redundant but let's go with the flow
+    query = inputQuery
 
-    # We are using the Google Translator python package to translate english to french
-    translated_result = GoogleTranslator(source='english', target='french').translate(processed_query['query'])
+    # inputQuery is returned in a string format, the following code should change the inputQuery to json (python dictionary)
+    processed_query = json.loads(query)
 
-    # punctuation removal is always expected. Following that are lowercase, and split the string into list so we can remove the tones and stopwords if the translated target is french
-    translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
-    translated_result_lower = translated_result_punct.lower()
-    translated_result_split = translated_result_lower.split()
-    translated_result_stop = [word for word in translated_result_split if word not in (stop_fr)]
-    translated_result_final = ' '.join(translated_result_stop)
-    translated_result_simple = unidecode.unidecode(translated_result_final)
+    # There are three keys in the processed_query: 
+    # "query" as in the original query (put in either french or english)
+    # "type" as in the query language type, so it's either EN or FR in this context
+    # "userfeedback" as in the userbased feendback after the first BM25 results are presented and people filter out the relevant ones
 
-    # After the procecssing for stopwords, punctuation, and tone removal (if applicable), we now want to stem the query since the index are for stemmed results as well
+    # Here we need to pre-set the variable for translating the query: eng --> french, or french --> eng
+    original_query = processed_query['query']
+    translated_result = ''
+    finalQuery_origin = ''
+    finalQuery_translated = ''
 
-    #### The method for English stemmer is Porter, and French stemmer is Snowball
-    finalQuery_origin = engInputProcessed(original_query)
-    finalQuery_translated = frenchInputProcessed(translated_result_simple)
+    # This is to pre-set for the all the BatchRetrieve process for specific query search
+    rankedRetrieval_eng = pt.BatchRetrieve(indexref_PS, wmodel='BM25')
+    rankedRetrieval_fr = pt.BatchRetrieve(indexref_FS, wmodel='BM25')
 
-    # Now that we've done with the preprocessing, let's dump the query into the batch retrieval index
-    initial_results_eng = rankedRetrieval_eng.search(finalQuery_origin)
-    initial_results_fr = rankedRetrieval_fr.search(finalQuery_translated)
+    # Set up the peudoRelevance pipeline·
+    bo1_eng = pt.rewrite.Bo1QueryExpansion(indexref_PS, fb_terms=8, fb_docs=2)
+    bo1_fr = pt.rewrite.Bo1QueryExpansion(indexref_FS, fb_terms=8, fb_docs=2)
 
-    bo1_eng_transformed = bo1_eng.transform(initial_results_eng)
-    bo1_fr_transformed = bo1_fr.transform(initial_results_fr)
+    # We separate the scenario into two groups: when the input query is in English || when the input query is in French
 
-    tokenized_bo1_eng_transformed = bo1_eng_transformed.loc[0, 'query'].split(' ')
-    tokenized_bo1_fr_transformed = bo1_fr_transformed.loc[0, 'query'].split(' ')
 
-    englishTerms = tokenized_bo1_eng_transformed
-    frenchTerms = tokenized_bo1_fr_transformed
-    for item in tokenized_bo1_eng_transformed:
-      if (item != 'applypipeline:off'):
-        item_lst = item.split('^')
-        try:
-          translated_expandQuery = GoogleTranslator(source='english', target='french').translate(item_lst[0])
-          # I want to stem the query
-          translated_expandQuery_stemmed = fs.stem(translated_expandQuery)
-          # and then remove the accents in french
-          translated_expandQuery_final = unidecode.unidecode(translated_expandQuery_stemmed)
-          # now the newTermEntry should be good to go
-          newTermEntry = [translated_expandQuery_final, item_lst[1]]
-          # insert into list at right location
-          for i in range(len(frenchTerms)):
-            if (i != 0):
-              currTerms = frenchTerms[i].split('^')
-              if (float(currTerms[1]) < float(item_lst[1])):
-                frenchTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
-                break
-              # we are assuming index 0 is always 1
-        except:
+    if processed_query['type'] == 'EN':
+
+      # We are using the Google Translator python package to translate english to french
+      translated_result = GoogleTranslator(source='english', target='french').translate(processed_query['query'])
+
+      # punctuation removal is always expected. Following that are lowercase, and split the string into list so we can remove the tones and stopwords if the translated target is french
+      translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
+      translated_result_lower = translated_result_punct.lower()
+      translated_result_split = translated_result_lower.split()
+      translated_result_stop = [word for word in translated_result_split if word not in (stop_fr)]
+      translated_result_final = ' '.join(translated_result_stop)
+      translated_result_simple = unidecode.unidecode(translated_result_final)
+
+      # After the procecssing for stopwords, punctuation, and tone removal (if applicable), we now want to stem the query since the index are for stemmed results as well
+
+      #### The method for English stemmer is Porter, and French stemmer is Snowball
+      finalQuery_origin = engInputProcessed(original_query)
+      finalQuery_translated = frenchInputProcessed(translated_result_simple)
+
+      # Now that we've done with the preprocessing, let's dump the query into the batch retrieval index
+      initial_results_eng = rankedRetrieval_eng.search(finalQuery_origin)
+      initial_results_fr = rankedRetrieval_fr.search(finalQuery_translated)
+
+      bo1_eng_transformed = bo1_eng.transform(initial_results_eng)
+      bo1_fr_transformed = bo1_fr.transform(initial_results_fr)
+
+      tokenized_bo1_eng_transformed = bo1_eng_transformed.loc[0, 'query'].split(' ')
+      tokenized_bo1_fr_transformed = bo1_fr_transformed.loc[0, 'query'].split(' ')
+
+      englishTerms = tokenized_bo1_eng_transformed
+      frenchTerms = tokenized_bo1_fr_transformed
+      for item in tokenized_bo1_eng_transformed:
+        if (item != 'applypipeline:off'):
+          item_lst = item.split('^')
+          try:
+            translated_expandQuery = GoogleTranslator(source='english', target='french').translate(item_lst[0])
+            # I want to stem the query
+            translated_expandQuery_stemmed = fs.stem(translated_expandQuery)
+            # and then remove the accents in french
+            translated_expandQuery_final = unidecode.unidecode(translated_expandQuery_stemmed)
+            # now the newTermEntry should be good to go
+            newTermEntry = [translated_expandQuery_final, item_lst[1]]
+            # insert into list at right location
+            for i in range(len(frenchTerms)):
+              if (i != 0):
+                currTerms = frenchTerms[i].split('^')
+                if (float(currTerms[1]) < float(item_lst[1])):
+                  frenchTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
+                  break
+                # we are assuming index 0 is always 1
+          except:
+            continue
+
+      for item in tokenized_bo1_fr_transformed:
+        if (item != 'applypipeline:off'):
+          item_lst = item.split('^')
+          try:
+            translated_expandQuery = GoogleTranslator(source='french', target='english').translate(item_lst[0])
+            # first you need to stem the translated expand queries
+            translated_expandQuery_final = ps.stem(translated_expandQuery)
+            # now put that in the newTermEntry
+            newTermEntry = [translated_expandQuery_final, item_lst[1]]
+            # insert into list at right location
+            for i in range(len(englishTerms)):
+              if (i != 0):
+                currTerms = englishTerms[i].split('^')
+                if (float(currTerms[1]) < float(item_lst[1])):
+                  englishTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
+                  break
+          except:
+            continue
+      
+      expandedEngQueries = []
+      for i in range(len(englishTerms)):
+        if (i == 0):
           continue
+        else:
+          english_item_lst = englishTerms[i].split('^')
+          expandedEngQueries.append(english_item_lst[0])
+      expandedEngQueries = list(dict.fromkeys(expandedEngQueries))
 
-    for item in tokenized_bo1_fr_transformed:
-      if (item != 'applypipeline:off'):
-        item_lst = item.split('^')
-        try:
-          translated_expandQuery = GoogleTranslator(source='french', target='english').translate(item_lst[0])
-          # first you need to stem the translated expand queries
-          translated_expandQuery_final = ps.stem(translated_expandQuery)
-          # now put that in the newTermEntry
-          newTermEntry = [translated_expandQuery_final, item_lst[1]]
-          # insert into list at right location
-          for i in range(len(englishTerms)):
-            if (i != 0):
-              currTerms = englishTerms[i].split('^')
-              if (float(currTerms[1]) < float(item_lst[1])):
-                englishTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
-                break
-        except:
+      frenchTermstoString = ' '.join(frenchTerms)
+      englishTermstoString = ' '.join(englishTerms)
+
+      allqid_eng = bo1_eng_transformed['qid'].tolist()
+      allqid_fr = bo1_fr_transformed['qid'].tolist()
+
+      newQuerydf_eng = pd.DataFrame({'qid': allqid_eng, 'query': [englishTermstoString]})
+      newQuerydf_fr = pd.DataFrame({'qid': allqid_fr, 'query': [frenchTermstoString]})
+
+      results_eng = rankedRetrieval_eng.transform(newQuerydf_eng)
+      results_fr = rankedRetrieval_eng.transform(newQuerydf_fr)
+
+      results_eng['language'] = ['english'] * len(results_eng['rank'])
+      results_fr['language'] = ['french'] * len(results_fr['rank'])
+
+      results_eng = normalizeDataFrames(results_eng, 'score')
+      results_fr = normalizeDataFrames(results_fr, 'score')
+
+      results_frames = [results_eng, results_fr]
+      combined_results = pd.concat(results_frames)
+
+      combined_results['ranking-score'] = combined_results['score'].rank(ascending = 0)
+      combined_results = combined_results.set_index('ranking-score')
+      combined_results = combined_results.sort_index()
+
+      initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
+      initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
+
+      initial_results_eng = normalizeDataFrames(initial_results_eng, 'score')
+      initial_results_fr = normalizeDataFrames(initial_results_fr, 'score')
+
+      initial_results_frames = [initial_results_eng, initial_results_fr]
+      initial_combined_results = pd.concat(initial_results_frames)
+
+      initial_combined_results['ranking-score'] = initial_combined_results['score'].rank(ascending = 0)
+      initial_combined_results = initial_combined_results.set_index('ranking-score')
+      initial_combined_results = initial_combined_results.sort_index()
+
+      initial_docno = []
+      combined_pseudo_docno = []
+      returned_data = {
+        "translatedResult": translated_result,
+        "queryLanguage": "english",
+        "expandedQueries": expandedEngQueries,
+        "initialDocs":[],
+        "expandedDocs": []
+      }
+
+      for row in initial_combined_results.itertuples():
+        if row.language == 'french':
+          initial_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
+        elif row.language == 'english':
+          initial_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
+
+      for item in initial_docno:
+        for row in combined_data.itertuples():
+          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+            tokenized_abstract = row.Abstract.split(' ')
+            abstract_lst = tokenized_abstract[0:30]
+            abstract_snippet = ' '.join(abstract_lst)
+            abstract_snippet = abstract_snippet + '...'
+            returned_data['initialDocs'].append({
+              "docid": row.Sno,
+              "score": item['score'],
+              "docLanguage": row.Language,
+              "title": row.Title,
+              "keywords": row.Keywords.split('; '),
+              "authors": row.Authors,
+              "releaseDate": row.ReleaseDate,
+              "subjectHeadings": row.SubjectHeading.split(', '),
+              "abstract": row.Abstract,
+              "snippet": abstract_snippet
+            })
+
+      for row in combined_results.itertuples():
+        if row.language == 'french':
+          combined_pseudo_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
+        elif row.language == 'english':
+          combined_pseudo_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
+
+      for item in combined_pseudo_docno:
+        for row in combined_data.itertuples():
+          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+            tokenized_abstract = row.Abstract.split(' ')
+            abstract_lst = tokenized_abstract[0:30]
+            abstract_snippet = ' '.join(abstract_lst)
+            abstract_snippet = abstract_snippet + '...'
+            returned_data['expandedDocs'].append({
+              "docid": row.Sno,
+              "score": item['score'],
+              "docLanguage": row.Language,
+              "title": row.Title,
+              "keywords": row.Keywords.split('; '),
+              "authors": row.Authors,
+              "releaseDate": row.ReleaseDate,
+              "subjectHeadings": row.SubjectHeading.split(', '),
+              "abstract": row.Abstract,
+              "snippet": abstract_snippet
+            })
+
+      print(json.dumps(returned_data))
+
+
+  ################ Now you just have to perform the same process as query is in French!!!!
+    elif processed_query['type'] == 'FR':
+      translated_result = GoogleTranslator(source='french', target='english').translate(processed_query['query'])
+      translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
+      translated_result_lower = translated_result_punct.lower()
+      translated_result_split = translated_result_lower.split()
+      translated_result_stop = [word for word in translated_result_split if word not in (stop_eng)]
+      translated_result_final = ' '.join(translated_result_stop)
+
+      original_query_punct = re.sub('[^\w\s]+', '', original_query)
+      original_query_lower = original_query_punct.lower()
+      original_query_split = original_query_lower.split()
+      original_query_stop = [word for word in original_query_split if word not in (stop_fr)]
+      original_query_final = ' '.join(original_query_stop)
+      original_query_simple = unidecode.unidecode(original_query_final)
+
+      finalQuery_origin = frenchInputProcessed(original_query_simple)
+      finalQuery_translated = engInputProcessed(translated_result_final)
+
+      initial_results_eng = rankedRetrieval_eng.search(finalQuery_translated)
+      initial_results_fr = rankedRetrieval_fr.search(finalQuery_origin)
+
+      bo1_eng_transformed = bo1_eng.transform(initial_results_eng)
+      bo1_fr_transformed = bo1_fr.transform(initial_results_fr)
+
+      tokenized_bo1_eng_transformed = bo1_eng_transformed.loc[0, 'query'].split(' ')
+      tokenized_bo1_fr_transformed = bo1_fr_transformed.loc[0, 'query'].split(' ')
+
+      englishTerms = tokenized_bo1_eng_transformed
+      frenchTerms = tokenized_bo1_fr_transformed
+      for item in tokenized_bo1_eng_transformed:
+        if (item != 'applypipeline:off'):
+          item_lst = item.split('^')
+          try:
+            translated_expandQuery = GoogleTranslator(source='english', target='french').translate(item_lst[0])
+            # I want to stem the query
+            translated_expandQuery_stemmed = fs.stem(translated_expandQuery)
+            # and then remove the accents in french
+            translated_expandQuery_final = unidecode.unidecode(translated_expandQuery_stemmed)
+            # now the newTermEntry should be good to go
+            newTermEntry = [translated_expandQuery_final, item_lst[1]]
+            # insert into list at right location
+            for i in range(len(frenchTerms)):
+              if (i != 0):
+                currTerms = frenchTerms[i].split('^')
+                if (float(currTerms[1]) < float(item_lst[1])):
+                  frenchTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
+                  break
+                # we are assuming index 0 is always 1
+          except:
+            continue
+
+      for item in tokenized_bo1_fr_transformed:
+        if (item != 'applypipeline:off'):
+          item_lst = item.split('^')
+          try:
+            translated_expandQuery = GoogleTranslator(source='french', target='english').translate(item_lst[0])
+            # first you need to stem the translated expand queries
+            translated_expandQuery_final = ps.stem(translated_expandQuery)
+            # now put that in the newTermEntry
+            newTermEntry = [translated_expandQuery_final, item_lst[1]]
+            # insert into list at right location
+            for i in range(len(englishTerms)):
+              if (i != 0):
+                currTerms = englishTerms[i].split('^')
+                if (float(currTerms[1]) < float(item_lst[1])):
+                  englishTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
+                  break
+          except:
+            continue
+
+      expandedEngQueries = []
+      for i in range(len(englishTerms)):
+        if (i == 0):
           continue
+        else:
+          english_item_lst = englishTerms[i].split('^')
+          expandedEngQueries.append(english_item_lst[0])
+      expandedEngQueries = list(dict.fromkeys(expandedEngQueries))
 
-    frenchTermstoString = ' '.join(frenchTerms)
-    englishTermstoString = ' '.join(englishTerms)
+      frenchTermstoString = ' '.join(frenchTerms)
+      englishTermstoString = ' '.join(englishTerms)
 
-    allqid_eng = bo1_eng_transformed['qid'].tolist()
-    allqid_fr = bo1_fr_transformed['qid'].tolist()
+      allqid_eng = bo1_eng_transformed['qid'].tolist()
+      allqid_fr = bo1_fr_transformed['qid'].tolist()
 
-    newQuerydf_eng = pd.DataFrame({'qid': allqid_eng, 'query': [englishTermstoString]})
-    newQuerydf_fr = pd.DataFrame({'qid': allqid_fr, 'query': [frenchTermstoString]})
+      newQuerydf_eng = pd.DataFrame({'qid': allqid_eng, 'query': [englishTermstoString]})
+      newQuerydf_fr = pd.DataFrame({'qid': allqid_fr, 'query': [frenchTermstoString]})
 
-    results_eng = rankedRetrieval_eng.transform(newQuerydf_eng)
-    results_fr = rankedRetrieval_eng.transform(newQuerydf_fr)
+      results_eng = rankedRetrieval_eng.transform(newQuerydf_eng)
+      results_fr = rankedRetrieval_eng.transform(newQuerydf_fr)
 
-    results_eng['language'] = ['english'] * len(results_eng['rank'])
-    results_fr['language'] = ['french'] * len(results_fr['rank'])
+      results_eng['language'] = ['english'] * len(results_eng['rank'])
+      results_fr['language'] = ['french'] * len(results_fr['rank'])
 
-    results_eng = normalizeDataFrames(results_eng, 'score')
-    results_fr = normalizeDataFrames(results_fr, 'score')
+      results_eng = normalizeDataFrames(results_eng, 'score')
+      results_fr = normalizeDataFrames(results_fr, 'score')
 
-    results_frames = [results_eng, results_fr]
-    combined_results = pd.concat(results_frames)
+      results_frames = [results_eng, results_fr]
+      combined_results = pd.concat(results_frames)
 
-    combined_results['ranking-score'] = combined_results['score'].rank(ascending = 0)
-    combined_results = combined_results.set_index('ranking-score')
-    combined_results = combined_results.sort_index()
+      combined_results['ranking-score'] = combined_results['score'].rank(ascending = 0)
+      combined_results = combined_results.set_index('ranking-score')
+      combined_results = combined_results.sort_index()
 
-    combined_pseudo_docno = []
-    returned_data = {
-      "translatedResult": translated_result,
-      "queryLanguage": "english",
-      "expandedDocs": [],
-    }
+      initial_results_eng['language'] = ['english'] * len(initial_results_eng['rank'])
+      initial_results_fr['language'] = ['french'] * len(initial_results_fr['rank'])
 
-    for row in combined_results.itertuples():
-      if row.language == 'french':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
-      elif row.language == 'english':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
+      initial_results_eng = normalizeDataFrames(initial_results_eng, 'score')
+      initial_results_fr = normalizeDataFrames(initial_results_fr, 'score')
 
-    for item in combined_pseudo_docno:
-      for row in combined_data.itertuples():
-        if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
-          tokenized_abstract = row.Abstract.split(' ')
-          abstract_lst = tokenized_abstract[0:30]
-          abstract_snippet = ' '.join(abstract_lst)
-          abstract_snippet = abstract_snippet + '...'
+      initial_results_frames = [initial_results_eng, initial_results_fr]
+      initial_combined_results = pd.concat(initial_results_frames)
 
-          returned_data['expandedDocs'].append({
-            "docid": row.Sno,
-            "score": item['score'],
-            "docLanguage": row.Language,
-            "title": row.Title,
-            "keywords": row.Keywords.split('; '),
-            "authors": row.Authors,
-            "releaseDate": row.ReleaseDate,
-            "subjectHeadings": row.SubjectHeading.split(', '),
-            "abstract": row.Abstract,
-            "snippet": abstract_snippet
-          })
+      initial_combined_results['ranking-score'] = initial_combined_results['score'].rank(ascending = 0)
+      initial_combined_results = initial_combined_results.set_index('ranking-score')
+      initial_combined_results = initial_combined_results.sort_index()
 
-    print(json.dumps(returned_data))
+      initial_docno = []
+      combined_pseudo_docno = []
+      returned_data = {
+        "translatedResult": translated_result,
+        "queryLanguage": "english",
+        "expandedQueries": expandedEngQueries,
+        "initialDocs":[],
+        "expandedDocs": []
+      }
 
+      for row in initial_combined_results.itertuples():
+        if row.language == 'french':
+          initial_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
+        elif row.language == 'english':
+          initial_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
 
-################ Now you just have to perform the same process as query is in French!!!!
-  elif processed_query['type'] == 'FR':
-    translated_result = GoogleTranslator(source='french', target='english').translate(processed_query['query'])
-    translated_result_punct = re.sub('[^\w\s]+', '', translated_result)
-    translated_result_lower = translated_result_punct.lower()
-    translated_result_split = translated_result_lower.split()
-    translated_result_stop = [word for word in translated_result_split if word not in (stop_eng)]
-    translated_result_final = ' '.join(translated_result_stop)
+      for item in initial_docno:
+        for row in combined_data.itertuples():
+          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+            tokenized_abstract = row.Abstract.split(' ')
+            abstract_lst = tokenized_abstract[0:30]
+            abstract_snippet = ' '.join(abstract_lst)
+            abstract_snippet = abstract_snippet + '...'
+            returned_data['initialDocs'].append({
+              "docid": row.Sno,
+              "score": item['score'],
+              "docLanguage": row.Language,
+              "title": row.Title,
+              "keywords": row.Keywords.split('; '),
+              "authors": row.Authors,
+              "releaseDate": row.ReleaseDate,
+              "subjectHeadings": row.SubjectHeading.split(', '),
+              "abstract": row.Abstract,
+              "snippet": abstract_snippet
+            })
 
-    original_query_punct = re.sub('[^\w\s]+', '', original_query)
-    original_query_lower = original_query_punct.lower()
-    original_query_split = original_query_lower.split()
-    original_query_stop = [word for word in original_query_split if word not in (stop_fr)]
-    original_query_final = ' '.join(original_query_stop)
-    original_query_simple = unidecode.unidecode(original_query_final)
+      for row in combined_results.itertuples():
+        if row.language == 'french':
+          combined_pseudo_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
+        elif row.language == 'english':
+          combined_pseudo_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
 
-    finalQuery_origin = frenchInputProcessed(original_query_simple)
-    finalQuery_translated = engInputProcessed(translated_result_final)
+      for item in combined_pseudo_docno:
+        for row in combined_data.itertuples():
+          if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
+            tokenized_abstract = row.Abstract.split(' ')
+            abstract_lst = tokenized_abstract[0:30]
+            abstract_snippet = ' '.join(abstract_lst)
+            abstract_snippet = abstract_snippet + '...'
+            returned_data['expandedDocs'].append({
+              "docid": row.Sno,
+              "score": item['score'],
+              "docLanguage": row.Language,
+              "title": row.Title,
+              "keywords": row.Keywords.split('; '),
+              "authors": row.Authors,
+              "releaseDate": row.ReleaseDate,
+              "subjectHeadings": row.SubjectHeading.split(', '),
+              "abstract": row.Abstract,
+              "snippet": abstract_snippet
+            })
 
-    initial_results_eng = rankedRetrieval_eng.search(finalQuery_translated)
-    initial_results_fr = rankedRetrieval_fr.search(finalQuery_origin)
-
-    bo1_eng_transformed = bo1_eng.transform(initial_results_eng)
-    bo1_fr_transformed = bo1_fr.transform(initial_results_fr)
-
-    tokenized_bo1_eng_transformed = bo1_eng_transformed.loc[0, 'query'].split(' ')
-    tokenized_bo1_fr_transformed = bo1_fr_transformed.loc[0, 'query'].split(' ')
-
-    englishTerms = tokenized_bo1_eng_transformed
-    frenchTerms = tokenized_bo1_fr_transformed
-    for item in tokenized_bo1_eng_transformed:
-      if (item != 'applypipeline:off'):
-        item_lst = item.split('^')
-        try:
-          translated_expandQuery = GoogleTranslator(source='english', target='french').translate(item_lst[0])
-          # I want to stem the query
-          translated_expandQuery_stemmed = fs.stem(translated_expandQuery)
-          # and then remove the accents in french
-          translated_expandQuery_final = unidecode.unidecode(translated_expandQuery_stemmed)
-          # now the newTermEntry should be good to go
-          newTermEntry = [translated_expandQuery_final, item_lst[1]]
-          # insert into list at right location
-          for i in range(len(frenchTerms)):
-            if (i != 0):
-              currTerms = frenchTerms[i].split('^')
-              if (float(currTerms[1]) < float(item_lst[1])):
-                frenchTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
-                break
-              # we are assuming index 0 is always 1
-        except:
-          continue
-
-    for item in tokenized_bo1_fr_transformed:
-      if (item != 'applypipeline:off'):
-        item_lst = item.split('^')
-        try:
-          translated_expandQuery = GoogleTranslator(source='french', target='english').translate(item_lst[0])
-          # first you need to stem the translated expand queries
-          translated_expandQuery_final = ps.stem(translated_expandQuery)
-          # now put that in the newTermEntry
-          newTermEntry = [translated_expandQuery_final, item_lst[1]]
-          # insert into list at right location
-          for i in range(len(englishTerms)):
-            if (i != 0):
-              currTerms = englishTerms[i].split('^')
-              if (float(currTerms[1]) < float(item_lst[1])):
-                englishTerms.insert(i, ''+newTermEntry[0]+'^'+newTermEntry[1])
-                break
-        except:
-          continue
-
-    frenchTermstoString = ' '.join(frenchTerms)
-    englishTermstoString = ' '.join(englishTerms)
-
-    allqid_eng = bo1_eng_transformed['qid'].tolist()
-    allqid_fr = bo1_fr_transformed['qid'].tolist()
-
-    newQuerydf_eng = pd.DataFrame({'qid': allqid_eng, 'query': [englishTermstoString]})
-    newQuerydf_fr = pd.DataFrame({'qid': allqid_fr, 'query': [frenchTermstoString]})
-
-    results_eng = rankedRetrieval_eng.transform(newQuerydf_eng)
-    results_fr = rankedRetrieval_eng.transform(newQuerydf_fr)
-
-    results_eng['language'] = ['english'] * len(results_eng['rank'])
-    results_fr['language'] = ['french'] * len(results_fr['rank'])
-
-    results_eng = normalizeDataFrames(results_eng, 'score')
-    results_fr = normalizeDataFrames(results_fr, 'score')
-
-    results_frames = [results_eng, results_fr]
-    combined_results = pd.concat(results_frames)
-
-    combined_results['ranking-score'] = combined_results['score'].rank(ascending = 0)
-    combined_results = combined_results.set_index('ranking-score')
-    combined_results = combined_results.sort_index()
-
-    combined_pseudo_docno = []
-    returned_data = {
-      "translatedResult": translated_result,
-      "queryLanguage": "english",
-      "expandedDocs": [],
-    }
-
-    for row in combined_results.itertuples():
-      if row.language == 'french':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "french", "score": float(row.score)})
-      elif row.language == 'english':
-        combined_pseudo_docno.append({"docno": int(row.docno), "language": "english", "score": float(row.score)})
-
-    for item in combined_pseudo_docno:
-      for row in combined_data.itertuples():
-        if int(row.Sno) == (int(item["docno"]) + 1) and row.Language == item["language"]:
-          tokenized_abstract = row.Abstract.split(' ')
-          abstract_lst = tokenized_abstract[0:30]
-          abstract_snippet = ' '.join(abstract_lst)
-          abstract_snippet = abstract_snippet + '...'
-
-          returned_data['expandedDocs'].append({
-            "docid": row.Sno,
-            "score": item['score'],
-            "docLanguage": row.Language,
-            "title": row.Title,
-            "keywords": row.Keywords.split('; '),
-            "authors": row.Authors,
-            "releaseDate": row.ReleaseDate,
-            "subjectHeadings": row.SubjectHeading.split(', '),
-            "abstract": row.Abstract,
-            "snippet": abstract_snippet
-          })
-
-    print(json.dumps(returned_data))
+      print(json.dumps(returned_data))
+  except:
+    print('Some error occured 🥲. There is no valid answer 🗂️ 💨')
   sys.stdout.flush()
 
 
