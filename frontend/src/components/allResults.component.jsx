@@ -1,13 +1,14 @@
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import Highlighter from "react-highlight-words";
 import "./allResults.styles.scss";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AllResults = ({ query }) => {
   const [shrink, setShrink] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState("");
   const [detail, setDetail] = useState({});
+  const [keywords, setKeywords] = useState("");
 
   const navigate = useNavigate();
   const results = JSON.parse(localStorage.getItem("searchedResults"));
@@ -20,6 +21,38 @@ const AllResults = ({ query }) => {
       <Fragment>
         <div className='translated-result'>
           Translated Result: <span>{results.translatedResult}</span>
+          <div className='MeSH-container'>
+            <div>
+              <input
+                type='checkbox'
+                id='vehicle1'
+                name='vehicle1'
+                value='Bike'
+              />
+              <label for='vehicle1'> I have a bike</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='vehicle2'
+                name='vehicle2'
+                value='Car'
+              />
+              <label for='vehicle2'> I have a car</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='vehicle3'
+                name='vehicle3'
+                value='Boat'
+              />
+              <label for='vehicle3'> I have a boat</label>
+              <br />
+            </div>
+          </div>
         </div>
 
         <div
@@ -32,6 +65,8 @@ const AllResults = ({ query }) => {
 
         {shrink === false ? (
           <div className='results-container'>
+            <div className='MeSH-container'></div>
+
             {results.initialDocs.map((ele, idx) => {
               const authorsArr = ele.authors.split(", ");
               const firstAuthor = authorsArr[0];
@@ -112,8 +147,23 @@ const AllResults = ({ query }) => {
                           <strong>Date: </strong>
                           {ele.releaseDate}
                         </div>
-                        <div>
-                          <strong>Keywords</strong>
+                        <div className='keywords'>
+                          <div
+                            onMouseEnter={() => setKeywords(ele.docid)}
+                            onMouseLeave={() => {
+                              setKeywords("");
+                            }}>
+                            <strong>Keywords</strong>
+                          </div>
+                          <div
+                            className='keywords-detail'
+                            style={
+                              keywords === ele.docid
+                                ? { display: "block" }
+                                : { display: "none" }
+                            }>
+                            {ele.keywords.join(", ")}
+                          </div>
                         </div>
                       </div>
                     </div>

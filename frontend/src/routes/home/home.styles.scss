@@ -1,3 +1,26 @@
+.searchBar {
+  position: relative;
+  .clear-results {
+    position: absolute;
+    top: 5px;
+    right: 300px;
+    background-color: #88a47c;
+    padding: 10px;
+    border-radius: 10px;
+    color: #fff;
+
+    &:hover {
+      background-color: #fff;
+      border-color: #88a47c;
+      border-style: solid;
+      border-width: 2px;
+      color: #88a47c;
+      cursor: pointer;
+      transition: all 0.3s ease-in-out;
+    }
+  }
+}
+
 .results-container {
   width: 1100px;
   margin: 30px auto;

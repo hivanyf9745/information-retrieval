@@ -7,6 +7,21 @@
   background-color: #f1f1f1;
   border-radius: 50px;
   font-weight: 500;
+  position: relative;
+
+  .MeSH-container {
+    width: 175px;
+    height: 200px;
+    background-color: #88a47c;
+
+    position: absolute;
+    top: 150px;
+    left: -400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+  }
 }
 
 .expand-button {
@@ -22,6 +37,8 @@
   color: #fff;
   border-radius: 50px;
   font-weight: 500;
+
+  position: relative;
 
   &:hover {
     background-color: #fff;
@@ -43,6 +60,7 @@
   padding: 30px;
   border-radius: 20px;
   box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+  position: relative;
 
   .result-container {
     display: flex;
@@ -167,6 +185,23 @@
       .expanded-info {
         display: flex;
         justify-content: space-between;
+
+        .keywords {
+          position: relative;
+          .keywords-detail {
+            position: absolute;
+            background-color: #fff;
+            padding: 20px;
+            margin-top: 5px;
+            color: #000;
+            z-index: 1000;
+            width: 300px;
+            height: 100px;
+            float: right;
+            box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+            display: none;
+          }
+        }
       }
     }
   }
@@ -185,18 +220,21 @@
       background-color: #63dd85;
       width: 10px;
       border-radius: 10px 0 0 10px;
+      height: 100vh;
     }
 
     .score-color-yellow {
       background-color: #f5b716;
       width: 10px;
       border-radius: 10px 0 0 10px;
+      height: 100vh;
     }
 
     .score-color-red {
       background-color: #f46c64;
       width: 10px;
       border-radius: 10px 0 0 10px;
+      height: 100vh;
     }
 
     .page-detail {

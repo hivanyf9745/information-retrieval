@@ -20,10 +20,6 @@ const Home = () => {
   const [results, setResults] = useState(null);
   const [focus, setFocus] = useState(false);
 
-  useEffect(() => {
-    localStorage.removeItem("searchedResults");
-  }, []);
-
   console.log("results: -->", typeof results);
 
   const handleChange = (event, newLanguage) => {
@@ -68,72 +64,79 @@ const Home = () => {
   return (
     <div>
       <div className='search-bar-container'>
-        <Paper
-          component='form'
-          sx={
-            !focus
-              ? {
-                  p: "2px 4px",
-                  display: "flex",
-                  alignItems: "center",
-                  width: 700,
-                  margin: "0 auto",
-                  borderRadius: "1000px",
-                  boxShadow: "none",
-                  backgroundColor: "#F6F5F5",
-                }
-              : {
-                  p: "2px 4px",
-                  display: "flex",
-                  alignItems: "center",
-                  width: 700,
-                  margin: "0 auto",
-                  borderRadius: "1000px",
-                  boxShadow: "none",
-                  backgroundColor: "#fff",
-                  outline: "#445FEA solid 3px",
-                }
-          }>
-          <IconButton
-            type='button'
-            sx={{ p: "10px" }}
-            aria-label='search'
-            onClick={submitQuery}>
-            <SearchIcon />
-          </IconButton>
-          <InputBase
-            sx={{ ml: 1, flex: 1 }}
-            placeholder='Input French/English Query'
-            inputProps={{ "aria-label": "Input French/English Query" }}
-            onChange={handleQuery}
-            onFocus={() => setFocus(true)}
-            onKeyDown={enterKeyDownHandler}
-          />
-          <IconButton type='button' sx={{ p: "10px" }} aria-label='search'>
-            <ClearIcon />
-          </IconButton>
-          <Divider sx={{ height: 28, m: 0.5 }} orientation='vertical' />
-          <ToggleButtonGroup
-            color='primary'
-            value={language}
-            exclusive
-            onChange={handleChange}
-            aria-label='Platform'>
-            <ToggleButton value='EN' sx={{ border: "none" }}>
-              EN
-            </ToggleButton>
-            <ToggleButton value='FR' sx={{ border: "none" }}>
-              FR
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Paper>
+        <div className='searchBar'>
+          <Paper
+            component='form'
+            sx={
+              !focus
+                ? {
+                    p: "2px 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    width: 700,
+                    margin: "0 auto",
+                    borderRadius: "1000px",
+                    boxShadow: "none",
+                    backgroundColor: "#F6F5F5",
+                  }
+                : {
+                    p: "2px 4px",
+                    display: "flex",
+                    alignItems: "center",
+                    width: 700,
+                    margin: "0 auto",
+                    borderRadius: "1000px",
+                    boxShadow: "none",
+                    backgroundColor: "#fff",
+                    outline: "#445FEA solid 3px",
+                  }
+            }>
+            <IconButton
+              type='button'
+              sx={{ p: "10px" }}
+              aria-label='search'
+              onClick={submitQuery}>
+              <SearchIcon />
+            </IconButton>
+            <InputBase
+              sx={{ ml: 1, flex: 1 }}
+              placeholder='Input French/English Query'
+              inputProps={{ "aria-label": "Input French/English Query" }}
+              onChange={handleQuery}
+              onFocus={() => setFocus(true)}
+              onKeyDown={enterKeyDownHandler}
+            />
+            <IconButton type='button' sx={{ p: "10px" }} aria-label='search'>
+              <ClearIcon />
+            </IconButton>
+            <Divider sx={{ height: 28, m: 0.5 }} orientation='vertical' />
+            <ToggleButtonGroup
+              color='primary'
+              value={language}
+              exclusive
+              onChange={handleChange}
+              aria-label='Platform'>
+              <ToggleButton value='EN' sx={{ border: "none" }}>
+                EN
+              </ToggleButton>
+              <ToggleButton value='FR' sx={{ border: "none" }}>
+                FR
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Paper>
+
+          <div
+            className='clear-results'
+            onClick={() => {
+              localStorage.removeItem("searchedResults");
+              window.location.reload();
+            }}>
+            clear all results
+          </div>
+        </div>
 
         {localStorage.getItem("searchedResults") ? (
-          <AllResults
-            results={results}
-            query={query}
-            onClick={() => setFocus(false)}
-          />
+          <AllResults query={query} onClick={() => setFocus(false)} />
         ) : (
           <div
             className='results-container-null'
