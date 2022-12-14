@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import Highlighter from "react-highlight-words";
 import "./pseudo.styles.scss";
@@ -13,6 +13,35 @@ const Pseudo = () => {
   const [selectedDoc, setSelectedDoc] = useState("");
   const [detail, setDetail] = useState({});
   const [keywords, setKeywords] = useState("");
+  const [mesh, setMesh] = useState([]);
+  const [filteredResults, setFilteredResults] = useState(results.initialDocs);
+
+  useEffect(() => {
+    let newfilteredResults = [];
+
+    if (mesh.length !== 0) {
+      for (let i = 0; i < mesh.length; i++) {
+        results.initialDocs.forEach(
+          ele =>
+            ele.subjectHeadings.includes(mesh[i]) &&
+            newfilteredResults.push(ele)
+        );
+      }
+      setFilteredResults(newfilteredResults);
+    } else {
+      setFilteredResults(results.initialDocs);
+    }
+  }, [mesh]);
+
+  const changeHandler = e => {
+    if (e.target.checked && !mesh.includes(e.target.value)) {
+      let newMesh = [...mesh, e.target.value];
+      setMesh(newMesh);
+    } else if (!e.target.checked && mesh.includes(e.target.value)) {
+      let newMesh = mesh.filter(ele => ele !== e.target.value);
+      setMesh(newMesh);
+    }
+  };
 
   const navigate = useNavigate();
 
@@ -21,6 +50,124 @@ const Pseudo = () => {
       <div className='expandedQueries-results'>
         Pseudo Relevance Results:{" "}
         <span>{results.expandedQueries.join(", ")}</span>
+        <div className='MeSH-container'>
+          <div>
+            <input
+              type='checkbox'
+              id='AD'
+              name='anxietyDisorder'
+              value='AD'
+              onChange={changeHandler}
+            />
+            <label for='AD'> Anxiety Disorder</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='DP'
+              name='depression'
+              value='DP'
+              onChange={changeHandler}
+            />
+            <label for='DP'> Depression</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='BD'
+              name='bipolarDisorder'
+              value='BD'
+              onChange={changeHandler}
+            />
+            <label for='BD'> Bipolar Disorder</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='PTSD'
+              name='PTSD'
+              value='PTSD'
+              onChange={changeHandler}
+            />
+            <label for='PTSD'> Post-Traumatic Stress Disorder</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='Schizophrenia'
+              name='schizophrenia'
+              value='Schizophrenia'
+              onChange={changeHandler}
+            />
+            <label for='Schizophrenia'> Schizophrenia</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='ED'
+              name='eatingDisorder'
+              value='ED'
+              onChange={changeHandler}
+            />
+            <label for='ED'> Eating Disorder</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='DD'
+              name='disruptive-dissocial'
+              value='DD'
+              onChange={changeHandler}
+            />
+            <label for='DD'>
+              {" "}
+              Disruptive behaviour and dissocial disorders
+            </label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='ND'
+              name='neuroDisorder'
+              value='ND'
+              onChange={changeHandler}
+            />
+            <label for='ND'> Neurodevelopmental disorders</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='Treatment'
+              name='treatment'
+              value='Treatment'
+              onChange={changeHandler}
+            />
+            <label for='Treatment'> Treatment</label>
+            <br />
+          </div>
+          <div>
+            <input
+              type='checkbox'
+              id='ADHD'
+              name='ADHD'
+              value='ADHD'
+              onChange={changeHandler}
+            />
+            <label for='Treatment'>
+              {" "}
+              Attention-deficit/hyperactivity disorder
+            </label>
+            <br />
+          </div>
+        </div>
       </div>
 
       <div
@@ -33,7 +180,7 @@ const Pseudo = () => {
 
       {shrink === false ? (
         <div className='results-container'>
-          {results.expandedDocs.map((ele, idx) => {
+          {filteredResults.map((ele, idx) => {
             const authorsArr = ele.authors.split(", ");
             const firstAuthor = authorsArr[0];
             return (
@@ -74,7 +221,7 @@ const Pseudo = () => {
       ) : (
         <div className='expanded-results'>
           <div className='expanded-resultList'>
-            {results.expandedDocs.map((ele, idx) => {
+            {filteredResults.map((ele, idx) => {
               const authorsArr = ele.authors.split(", ");
               const firstAuthor = authorsArr[0];
 

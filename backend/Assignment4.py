@@ -32,14 +32,6 @@ index_count = 0
 import pyterrier as pt
 pt.init()
 
-#preprocessing for query expansion
-pos_tag_map = {
-  'NN': [ wn.NOUN ],
-  'JJ': [ wn.ADJ, wn.ADJ_SAT ],
-  'RB': [ wn.ADV ],
-  'VB': [ wn.VERB ]
-}
-
 #This line is crucial so that the frontend will send the query to nodejs, which invoke the python function with inputQuery's value as the parameter
 # So the input value should look like this'{"query": "emotion", "type": "EN"}'
 inputQuery = sys.argv[1]
@@ -150,8 +142,6 @@ def normalizeDataFrames(df, colname):
 
 
 #################################################
-#// printOPutcome function will blah vblah blah.  It is run when blahahblah
-#Coded by Jay
 #################################################
 def printOutcome(inputQuery):
   try:  # read the csv data from both file sources

@@ -1,20 +1,51 @@
 import ArrowCircleLeftIcon from "@mui/icons-material/ArrowCircleLeft";
 import Highlighter from "react-highlight-words";
 import "./allResults.styles.scss";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const AllResults = ({ query }) => {
+  const results = JSON.parse(localStorage.getItem("searchedResults"));
+
   const [shrink, setShrink] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState("");
   const [detail, setDetail] = useState({});
   const [keywords, setKeywords] = useState("");
+  const [mesh, setMesh] = useState([]);
+  const [filteredResults, setFilteredResults] = useState(results.initialDocs);
+
+  useEffect(() => {
+    let newfilteredResults = [];
+
+    if (mesh.length !== 0) {
+      for (let i = 0; i < mesh.length; i++) {
+        results.initialDocs.forEach(
+          ele =>
+            ele.subjectHeadings.includes(mesh[i]) &&
+            newfilteredResults.push(ele)
+        );
+      }
+      setFilteredResults(newfilteredResults);
+    } else {
+      setFilteredResults(results.initialDocs);
+    }
+  }, [mesh]);
 
   const navigate = useNavigate();
-  const results = JSON.parse(localStorage.getItem("searchedResults"));
 
   console.log(detail);
   console.log(results);
+  console.log("mesh: -->", mesh);
+
+  const changeHandler = e => {
+    if (e.target.checked && !mesh.includes(e.target.value)) {
+      let newMesh = [...mesh, e.target.value];
+      setMesh(newMesh);
+    } else if (!e.target.checked && mesh.includes(e.target.value)) {
+      let newMesh = mesh.filter(ele => ele !== e.target.value);
+      setMesh(newMesh);
+    }
+  };
 
   if (typeof results !== "string") {
     return (
@@ -25,31 +56,117 @@ const AllResults = ({ query }) => {
             <div>
               <input
                 type='checkbox'
-                id='vehicle1'
-                name='vehicle1'
-                value='Bike'
+                id='AD'
+                name='anxietyDisorder'
+                value='AD'
+                onChange={changeHandler}
               />
-              <label for='vehicle1'> I have a bike</label>
+              <label for='AD'> Anxiety Disorder</label>
               <br />
             </div>
             <div>
               <input
                 type='checkbox'
-                id='vehicle2'
-                name='vehicle2'
-                value='Car'
+                id='DP'
+                name='depression'
+                value='DP'
+                onChange={changeHandler}
               />
-              <label for='vehicle2'> I have a car</label>
+              <label for='DP'> Depression</label>
               <br />
             </div>
             <div>
               <input
                 type='checkbox'
-                id='vehicle3'
-                name='vehicle3'
-                value='Boat'
+                id='BD'
+                name='bipolarDisorder'
+                value='BD'
+                onChange={changeHandler}
               />
-              <label for='vehicle3'> I have a boat</label>
+              <label for='BD'> Bipolar Disorder</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='PTSD'
+                name='PTSD'
+                value='PTSD'
+                onChange={changeHandler}
+              />
+              <label for='PTSD'> Post-Traumatic Stress Disorder</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='Schizophrenia'
+                name='schizophrenia'
+                value='Schizophrenia'
+                onChange={changeHandler}
+              />
+              <label for='Schizophrenia'> Schizophrenia</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='ED'
+                name='eatingDisorder'
+                value='ED'
+                onChange={changeHandler}
+              />
+              <label for='ED'> Eating Disorder</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='DD'
+                name='disruptive-dissocial'
+                value='DD'
+                onChange={changeHandler}
+              />
+              <label for='DD'>
+                {" "}
+                Disruptive behaviour and dissocial disorders
+              </label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='ND'
+                name='neuroDisorder'
+                value='ND'
+                onChange={changeHandler}
+              />
+              <label for='ND'> Neurodevelopmental disorders</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='Treatment'
+                name='treatment'
+                value='Treatment'
+                onChange={changeHandler}
+              />
+              <label for='Treatment'> Treatment</label>
+              <br />
+            </div>
+            <div>
+              <input
+                type='checkbox'
+                id='ADHD'
+                name='ADHD'
+                value='ADHD'
+                onChange={changeHandler}
+              />
+              <label for='Treatment'>
+                {" "}
+                Attention-deficit/hyperactivity disorder
+              </label>
               <br />
             </div>
           </div>
@@ -65,9 +182,7 @@ const AllResults = ({ query }) => {
 
         {shrink === false ? (
           <div className='results-container'>
-            <div className='MeSH-container'></div>
-
-            {results.initialDocs.map((ele, idx) => {
+            {filteredResults.map((ele, idx) => {
               const authorsArr = ele.authors.split(", ");
               const firstAuthor = authorsArr[0];
               return (
@@ -108,7 +223,7 @@ const AllResults = ({ query }) => {
         ) : (
           <div className='expanded-results'>
             <div className='expanded-resultList'>
-              {results.initialDocs.map((ele, idx) => {
+              {filteredResults.map((ele, idx) => {
                 const authorsArr = ele.authors.split(", ");
                 const firstAuthor = authorsArr[0];
 

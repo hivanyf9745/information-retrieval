@@ -7,4 +7,21 @@
   background-color: #f1f1f1;
   border-radius: 50px;
   font-weight: 500;
+  position: relative;
+
+  .MeSH-container {
+    width: 200px;
+    height: 200px;
+    padding: 5px;
+    // background-color: #88a47c;
+
+    position: absolute;
+    top: 150px;
+    left: -350px;
+    display: flex;
+    flex-direction: column;
+    justify-content: start;
+    align-items: start;
+    text-align: left;
+  }
 }
